@@ -1,4 +1,3 @@
-import React from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Flame, ScrollText } from 'lucide-react'

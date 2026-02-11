@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowRight,
+
   BookOpen,
   ChevronRight,
   Compass,
@@ -20,7 +20,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Badge } from '../components/Badge'
+
 import { CharacterPortrait } from '../components/CharacterPortrait'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { ConfirmDialog } from '../components/ConfirmDialog'

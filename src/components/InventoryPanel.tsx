@@ -299,7 +299,7 @@ export function InventoryPanel({ open, characters, onClose, onCharactersUpdated 
                                     <span className="text-[9px] text-ink-muted">{TYPE_LABELS[eq.type] ?? eq.type}</span>
                                   </div>
                                 </div>
-                                {eq.sellPrice > 0 && (
+                                {(eq.sellPrice ?? 0) > 0 && (
                                   <span className="flex items-center gap-0.5 text-[9px] text-gold">
                                     <Coins className="h-2.5 w-2.5" />
                                     {eq.sellPrice}
@@ -331,12 +331,12 @@ export function InventoryPanel({ open, characters, onClose, onCharactersUpdated 
                                           Consumível
                                         </span>
                                       )}
-                                      {eq.difficultyReduction > 0 && (
+                                      {eq.difficultyReduction && (eq.difficultyReduction ?? 0) > 0 && (
                                         <span className="rounded-full border border-glow/20 bg-glow/5 px-2 py-0.5 text-[8px] font-semibold text-glow">
                                           −{eq.difficultyReduction} Dificuldade
                                         </span>
                                       )}
-                                      {eq.hpRestore > 0 && (
+                                      {eq.hpRestore && (eq.hpRestore ?? 0) > 0 && (
                                         <span className="rounded-full border border-glow/20 bg-glow/5 px-2 py-0.5 text-[8px] font-semibold text-glow">
                                           +{eq.hpRestore} HP
                                         </span>

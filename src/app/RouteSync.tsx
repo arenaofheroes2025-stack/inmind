@@ -15,7 +15,7 @@ import { getWorld, listCharactersByWorld } from '../services/cache'
 /** Sync :worldId from URL → store (world object + characters) */
 export function SyncWorldId() {
   const { worldId } = useParams<{ worldId: string }>()
-  const currentWorldId = useGameStore((s) => s.currentWorldId)
+
   const setCurrentWorldId = useGameStore((s) => s.setCurrentWorldId)
   const setWorld = useGameStore((s) => s.setWorld)
   const setSavedCharacters = useGameStore((s) => s.setSavedCharacters)

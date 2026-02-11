@@ -1,4 +1,4 @@
-import type { Location, LocationContent, World } from '../data/types'
+import type { Location, LocationContent, World, EquipmentType } from '../data/types'
 import { buildSeedLocationContent } from '../data/seed'
 import { createChatCompletion } from './aiClient'
 import {
@@ -183,9 +183,9 @@ export async function generateLocationContent(
           locationId: lc.locationId ?? locId,
           npcs: Array.isArray(lc.npcs)
             ? lc.npcs.map((n: Record<string, unknown>) => ({
-                id: n.id ?? `${locId}-npc-0`,
-                name: n.name ?? 'Desconhecido',
-                role: n.role ?? 'misterioso',
+                id: String(n.id ?? `${locId}-npc-0`),
+                name: String(n.name ?? 'Desconhecido'),
+                role: String(n.role ?? 'misterioso'),
                 description: String(n.description ?? ''),
                 narrativeEffect: String(n.narrativeEffect ?? ''),
               }))
@@ -193,8 +193,8 @@ export async function generateLocationContent(
           quests: {
             main: Array.isArray(lc.quests?.main)
               ? lc.quests.main.map((q: Record<string, unknown>) => ({
-                  id: q.id ?? `${locId}-quest-main-0`,
-                  title: q.title ?? 'Missao',
+                  id: String(q.id ?? `${locId}-quest-main-0`),
+                  title: String(q.title ?? 'Missao'),
                   type: 'main' as const,
                   description: String(q.description ?? ''),
                   narrativeEffect: String(q.narrativeEffect ?? ''),
@@ -202,8 +202,8 @@ export async function generateLocationContent(
               : [],
             side: Array.isArray(lc.quests?.side)
               ? lc.quests.side.map((q: Record<string, unknown>) => ({
-                  id: q.id ?? `${locId}-quest-side-0`,
-                  title: q.title ?? 'Missao',
+                  id: String(q.id ?? `${locId}-quest-side-0`),
+                  title: String(q.title ?? 'Missao'),
                   type: 'side' as const,
                   description: String(q.description ?? ''),
                   narrativeEffect: String(q.narrativeEffect ?? ''),
@@ -211,8 +211,8 @@ export async function generateLocationContent(
               : [],
             ambient: Array.isArray(lc.quests?.ambient)
               ? lc.quests.ambient.map((q: Record<string, unknown>) => ({
-                  id: q.id ?? `${locId}-quest-ambient-0`,
-                  title: q.title ?? 'Missao',
+                  id: String(q.id ?? `${locId}-quest-ambient-0`),
+                  title: String(q.title ?? 'Missao'),
                   type: 'ambient' as const,
                   description: String(q.description ?? ''),
                   narrativeEffect: String(q.narrativeEffect ?? ''),
@@ -221,17 +221,17 @@ export async function generateLocationContent(
           },
           enemies: Array.isArray(lc.enemies)
             ? lc.enemies.map((e: Record<string, unknown>) => ({
-                id: e.id ?? `${locId}-enemy-0`,
-                name: e.name ?? 'Criatura',
+                id: String(e.id ?? `${locId}-enemy-0`),
+                name: String(e.name ?? 'Criatura'),
                 description: String(e.description ?? ''),
                 narrativeEffect: String(e.narrativeEffect ?? ''),
               }))
             : [],
           items: Array.isArray(lc.items)
             ? lc.items.map((it: Record<string, unknown>) => ({
-                id: it.id ?? `${locId}-item-0`,
-                name: it.name ?? 'Item Misterioso',
-                type: it.type ?? 'ferramenta',
+                id: String(it.id ?? `${locId}-item-0`),
+                name: String(it.name ?? 'Item Misterioso'),
+                type: (String(it.type ?? 'ferramenta') as EquipmentType),
                 description: String(it.description ?? ''),
                 narrativeEffect: String(it.narrativeEffect ?? ''),
               }))

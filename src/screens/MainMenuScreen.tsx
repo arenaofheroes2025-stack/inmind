@@ -6,13 +6,13 @@ import {
   MapPin,
   Plus,
   Scroll,
-  Sparkles,
+
   Swords,
   Users,
   WifiOff,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Badge } from '../components/Badge'
+
 import { CharacterPortrait } from '../components/CharacterPortrait'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import type { Character } from '../data/types'

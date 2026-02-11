@@ -450,9 +450,6 @@ export function AdventureScreen() {
     )
   }
 
-  const hasAnyPlayerAction = playerActions.some(
-    (a) => !a.skip && a.selectedTarget !== null && a.actionText.trim().length > 0,
-  )
   const allPlayersDefined = playerActions.length > 0 && playerActions.every(
     (a) => a.skip || (a.selectedTarget !== null && a.actionText.trim().length > 0),
   )
@@ -864,8 +861,8 @@ export function AdventureScreen() {
 
   /* ── Level-Up confirm handler ── */
   const handleLevelUpConfirm = async (
-    actionDeltas: Record<keyof ActionAttributes, number>,
-    battleDeltas: Record<keyof BattleAttributes, number>,
+    actionDeltas: Partial<ActionAttributes>,
+    battleDeltas: Partial<BattleAttributes>,
   ) => {
     if (!levelUpChar) return
     const charIdx = partyCharacters.findIndex((c) => c.id === levelUpChar.id)

@@ -124,7 +124,7 @@ export function extractNarrativeTags(text: string): NarrativeTag[] {
 
 function TagTooltip({ category, children }: { category: TagCategory; children: ReactNode }) {
   const [show, setShow] = useState(false)
-  const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const ref = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
