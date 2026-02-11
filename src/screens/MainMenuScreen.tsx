@@ -142,23 +142,23 @@ export function MainMenuScreen() {
               RPG Procedural
             </span>
 
-            <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-start">
-              {/* Logo grande ao lado */}
+            <div className="mt-5 flex flex-col items-center gap-6 lg:flex-row lg:items-start">
+              {/* Logo grande ao lado - maior e centralizado no mobile */}
               <div className="flex-shrink-0">
                 <img
                   src="/images/Logo.png"
                   alt="InMind Logo"
-                  className="h-32 w-32 object-contain drop-shadow-lg md:h-48 md:w-48"
+                  className="h-48 w-48 object-contain drop-shadow-lg sm:h-56 sm:w-56 lg:h-40 lg:w-40 xl:h-48 xl:w-48"
                 />
               </div>
 
               {/* Texto */}
-              <div className="flex-1">
+              <div className="flex-1 text-center lg:text-left">
                 <h2 className="font-display text-2xl font-bold leading-tight text-white drop-shadow-lg sm:text-3xl md:text-4xl">
                   Sua jornada<br />
                   <span className="gold-shimmer">comeca aqui</span>
                 </h2>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/80 drop-shadow">
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/80 drop-shadow mx-auto lg:mx-0">
                   Crie um universo unico, forje seu heroi e embarque em uma aventura
                   com inicio, meio e fim. Tudo gerado por IA, salvo no seu
                   dispositivo, pronto para jogar offline.
