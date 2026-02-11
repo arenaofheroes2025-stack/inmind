@@ -67,6 +67,10 @@ export async function getWorld(id: string) {
 
 export async function listWorlds() {
   const db = await dbPromise
+  // Add small delay to prevent blocking on mobile
+  if (typeof requestIdleCallback !== 'undefined') {
+    await new Promise(resolve => requestIdleCallback(resolve))
+  }
   return db.getAll('worlds') as Promise<World[]>
 }
 
@@ -123,6 +127,10 @@ export async function getCharacter(id: string) {
 
 export async function listCharacters() {
   const db = await dbPromise
+  // Add small delay to prevent blocking on mobile
+  if (typeof requestIdleCallback !== 'undefined') {
+    await new Promise(resolve => requestIdleCallback(resolve))
+  }
   return db.getAll('characters') as Promise<Character[]>
 }
 

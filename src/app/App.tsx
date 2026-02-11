@@ -14,15 +14,10 @@ export default function App() {
 
   return (
     <div className="relative min-h-dvh overflow-clip bg-obsidian">
-      {/* ambient background effects — dark blue-gray atmosphere */}
+      {/* simplified background — removed heavy gradients for iOS performance */}
       <div className="pointer-events-none fixed inset-0">
-        <div className="absolute -top-40 left-[10%] h-[500px] w-[500px] rounded-full bg-gold/[0.03] blur-[160px]" />
-        <div className="absolute -bottom-32 right-[5%] h-[400px] w-[400px] rounded-full bg-[#2a4a6b]/[0.08] blur-[140px]" />
-        <div className="absolute left-1/2 top-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-arcane/[0.02] blur-[120px]" />
-        {/* subtle noise texture */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.5\'/%3E%3C/svg%3E")',
-        }} />
+        {/* single subtle glow instead of multiple */}
+        <div className="absolute inset-0 bg-gradient-to-br from-obsidian via-[#0a1420] to-obsidian" />
       </div>
 
       {/* ══ top bar — ornate header ══ */}

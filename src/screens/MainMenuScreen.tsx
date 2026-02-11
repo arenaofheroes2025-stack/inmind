@@ -61,20 +61,29 @@ export function MainMenuScreen() {
 
   const [confirmWorld, setConfirmWorld] = useState<string | null>(null)
   const [charsByWorld, setCharsByWorld] = useState<Record<string, Character[]>>({})
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   useEffect(() => {
     let mounted = true
     const load = async () => {
-      const [worlds, chars] = await Promise.all([listWorlds(), listCharacters()])
-      if (!mounted) return
-      setSavedWorlds(worlds)
-      const grouped: Record<string, Character[]> = {}
-      for (const c of chars) {
-        if (c.worldId) {
-          ;(grouped[c.worldId] ??= []).push(c)
+      setIsLoadingData(true)
+      try {
+        // Add small delay to allow UI to render before blocking on IndexedDB
+        await new Promise(r => setTimeout(r, 50))
+        
+        const [worlds, chars] = await Promise.all([listWorlds(), listCharacters()])
+        if (!mounted) return
+        setSavedWorlds(worlds)
+        const grouped: Record<string, Character[]> = {}
+        for (const c of chars) {
+          if (c.worldId) {
+            ;(grouped[c.worldId] ??= []).push(c)
+          }
         }
+        setCharsByWorld(grouped)
+      } finally {
+        if (mounted) setIsLoadingData(false)
       }
-      setCharsByWorld(grouped)
     }
     load()
     return () => { mounted = false }
@@ -190,6 +199,14 @@ export function MainMenuScreen() {
       </motion.div>
 
       {/* ══ saved adventures ══ */}
+      {isLoadingData && (
+        <div className="mt-8 text-center">
+          <div className="inline-flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full border-2 border-gold/30 border-t-gold animate-spin" style={{ animationDuration: '1s' }} />
+            <p className="text-sm text-ink-muted">Carregando aventuras...</p>
+          </div>
+        </div>
+      )}
       {savedWorlds.length > 0 && (
         <div className="mt-8">
           {/* section header */}
