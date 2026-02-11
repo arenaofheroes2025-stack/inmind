@@ -347,6 +347,7 @@ export function AdventureScreen() {
   const [isNarrating, setIsNarrating] = useState(false)
   const [outcomeText, setOutcomeText] = useState<string | null>(null)
   const narratedLocationRef = useRef<string | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!location || !content || !world) return
@@ -421,6 +422,14 @@ export function AdventureScreen() {
     return () => { m = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.id, content?.id, world?.id])
+
+  /* ── auto-scroll to content when scene changes ── */
+  useEffect(() => {
+    if (!contentRef.current) return
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }, [scene])
 
   /* ── narrative tags available for interaction ── */
   const availableTags: NarrativeTag[] = scene ? extractNarrativeTags(scene.description) : []
@@ -1269,7 +1278,7 @@ export function AdventureScreen() {
 
           {/* scene */}
           {scene && !isLoading && !isNarrating ? (
-            <motion.div {...fadeUp} transition={{ duration: 0.4 }} className="space-y-5">
+            <motion.div ref={contentRef} {...fadeUp} transition={{ duration: 0.4 }} className="space-y-5">
               {/* narrative box — hidden during outcome phase */}
               {!outcomeText && resolvedOutcomes.length === 0 && (
                 <div

@@ -23,7 +23,7 @@ import {
   Waves,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Badge } from '../components/Badge'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -146,6 +146,14 @@ export function TitleScreen() {
 
   const [showConfirmStart, setShowConfirmStart] = useState(false)
   const [showConfirmBack, setShowConfirmBack] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!contentRef.current) return
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }, [step])
 
   /* helpers */
   const universeObj = universes.find((u) => u.id === selectedUniverse)
@@ -206,37 +214,33 @@ export function TitleScreen() {
         <div className="flex items-center gap-1">
           {stepLabels.map((label, i) => {
             const s = i + 1
-            const active = s === step
             const done = s < step
             return (
-              <button
+              <div
                 key={label}
-                type="button"
-                onClick={() => { if (done) setStep(s) }}
-                disabled={!done && !active}
                 className="flex flex-1 flex-col items-center gap-1.5"
               >
                 <div className="flex w-full items-center">
                   <div
                     className={`h-1 flex-1 transition-colors duration-300 ${
-                      done || active ? 'bg-gold' : 'bg-ink/10'
+                      done || s === step ? 'bg-gold' : 'bg-ink/10'
                     }`}
                     style={{ clipPath: 'polygon(0 0, 100% 0, calc(100% - 2px) 100%, 2px 100%)' }}
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold transition-colors ${
-                    active ? 'bg-gold text-obsidian' : done ? 'bg-gold/30 text-gold' : 'bg-ink/10 text-ink-muted'
+                    s === step ? 'bg-gold text-obsidian' : done ? 'bg-gold/30 text-gold' : 'bg-ink/10 text-ink-muted'
                   }`}>
                     {done ? '✓' : s}
                   </span>
                   <span className={`hidden text-[9px] uppercase tracking-wider transition-colors sm:inline ${
-                    active ? 'font-bold text-gold' : done ? 'text-gold/60' : 'text-ink-muted'
+                    s === step ? 'font-bold text-gold' : done ? 'text-gold/60' : 'text-ink-muted'
                   }`}>
                     {label}
                   </span>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
@@ -499,6 +503,7 @@ export function TitleScreen() {
 
         {/* ═══ MAIN CONTENT CARD ═══ */}
         <div
+          ref={contentRef}
           className="relative overflow-hidden border border-ink/10 bg-panel/80"
           style={{ clipPath: clipCard }}
         >

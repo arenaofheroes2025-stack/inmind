@@ -34,7 +34,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { CharacterPortrait } from '../components/CharacterPortrait'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -200,6 +200,8 @@ export function CharacterCreateScreen() {
   const worldId = world?.id ?? currentWorldId
   const { goCharacters } = useNavigateGame()
 
+  const contentRef = useRef<HTMLDivElement>(null)
+
   const [step, setStep] = useState<Step>('identity')
   const [charId, setCharId] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -301,6 +303,15 @@ export function CharacterCreateScreen() {
     if (!aiOptions) return appearancePresets
     return aiOptions.appearancePresets
   }, [aiOptions])
+
+  /* ── scroll to content when step changes (mobile optimization) ── */
+  useEffect(() => {
+    if (!contentRef.current) return
+    // Scroll to the content container with smooth behavior
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }, [step])
 
   /* ── derived ── */
   const actionPointsUsed = actionKeys.reduce((s, k) => s + actionAttributes[k], 0) - BASE_ATTRIBUTE * actionKeys.length
@@ -435,10 +446,8 @@ export function CharacterCreateScreen() {
           <div className="px-5 py-4 sm:px-6">
             <div className="flex items-center gap-1">
               {steps.map((s, i) => (
-                <button
+                <div
                   key={s.key}
-                  type="button"
-                  onClick={() => setStep(s.key)}
                   className="flex flex-1 flex-col items-center gap-1.5"
                 >
                   <div className="flex w-full items-center">
@@ -465,7 +474,7 @@ export function CharacterCreateScreen() {
                       {s.label}
                     </span>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -473,6 +482,7 @@ export function CharacterCreateScreen() {
 
         {/* ═══ MAIN CONTENT CARD ═══ */}
         <div
+          ref={contentRef}
           className="relative overflow-hidden border border-ink/10 bg-panel/80"
           style={{ clipPath: clipCard }}
         >
