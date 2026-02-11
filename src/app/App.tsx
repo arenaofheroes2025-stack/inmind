@@ -8,11 +8,14 @@ import { CharacterHubScreen } from '../screens/CharacterHubScreen'
 import { MainMenuScreen } from '../screens/MainMenuScreen'
 import { TitleScreen } from '../screens/TitleScreen'
 import { SyncWorldId, SyncEditingCharId, SyncNewCharacter } from './RouteSync'
+import { AudioProvider } from '../components/AudioProvider'
+import { AudioControl } from '../components/AudioControl'
 
 export default function App() {
   const location = useLocation()
 
   return (
+    <AudioProvider>
     <div className="relative min-h-dvh overflow-clip bg-obsidian">
       {/* simplified background — removed heavy gradients for iOS performance */}
       <div className="pointer-events-none fixed inset-0">
@@ -36,6 +39,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-ink-muted">
+            <AudioControl />
             <ScrollText className="h-4 w-4 text-gold-dim" />
             <span className="hidden text-[10px] uppercase tracking-[0.3em] text-gold-dim sm:inline">
               Narrativa Procedural
@@ -83,5 +87,6 @@ export default function App() {
         </AnimatePresence>
       </main>
     </div>
+    </AudioProvider>
   )
 }

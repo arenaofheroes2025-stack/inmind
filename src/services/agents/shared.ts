@@ -243,29 +243,30 @@ export function buildLocationContext(
   content: LocationContent,
   activeQuestIds?: string[],
 ): string {
-  const npcs = content.npcs
+  const npcs = (content.npcs ?? [])
     .map((n) => `  - ${n.name} (${n.role}): ${n.description}`)
     .join('\n')
 
+  const quests = content.quests ?? { main: [], side: [], ambient: [] }
   const allQuests = [
-    ...content.quests.main.map((q) => {
+    ...(quests.main ?? []).map((q) => {
       const active = activeQuestIds?.includes(q.id) ? ' [ATIVA]' : ''
       return `  [principal${active}] ${q.title}: ${q.description}`
     }),
-    ...content.quests.side.map((q) => {
+    ...(quests.side ?? []).map((q) => {
       const active = activeQuestIds?.includes(q.id) ? ' [ATIVA]' : ''
       return `  [secundaria${active}] ${q.title}: ${q.description}`
     }),
-    ...content.quests.ambient.map((q) => {
+    ...(quests.ambient ?? []).map((q) => {
       const active = activeQuestIds?.includes(q.id) ? ' [ATIVA]' : ''
       return `  [ambiente${active}] ${q.title}: ${q.description}`
     }),
   ].join('\n')
 
-  const enemies = content.enemies
+  const enemies = (content.enemies ?? [])
     .map((e) => `  - ${e.name}: ${e.description}`)
     .join('\n')
-  const items = content.items
+  const items = (content.items ?? [])
     .map((it) => `  - [item:${it.name}] (${it.type}): ${it.description}`)
     .join('\n')
 

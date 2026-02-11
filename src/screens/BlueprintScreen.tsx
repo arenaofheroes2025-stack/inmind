@@ -14,6 +14,7 @@ import { Badge } from '../components/Badge'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DiamondDivider } from '../components/DiamondDivider'
+import { FullscreenCinematic } from '../components/FullscreenCinematic'
 import { PageCard } from '../components/PageCard'
 import { SectionCard } from '../components/SectionCard'
 import { Spinner } from '../components/Spinner'
@@ -39,6 +40,7 @@ export function BlueprintScreen() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [showEnterConfirm, setShowEnterConfirm] = useState(false)
   const [showBackConfirm, setShowBackConfirm] = useState(false)
+  const [isEntering, setIsEntering] = useState(false)
 
   const worldId = world?.id ?? currentWorldId
 
@@ -79,16 +81,34 @@ export function BlueprintScreen() {
     }
   }
 
-  const handleEnterAdventure = () => {
+  const MIN_CINEMATIC_MS = 6000
+
+  const handleEnterAdventure = async () => {
     setShowEnterConfirm(false)
     const wId = world?.id ?? currentWorldId
     if (!currentCharacterId || !wId) {
       if (wId) goCharacters(wId)
       return
     }
-    if (locations[0]) setCurrentLocationId(locations[0].id)
+    const firstLocation = locations[0]
+    if (!firstLocation) return
+
+    // Show fullscreen cinematic while preparing
+    setIsEntering(true)
+    const startedAt = Date.now()
+    try {
+      // Pre-generate location content so player doesn't wait on the adventure screen
+      await getOrCreateLocationContent(firstLocation, world ?? undefined)
+    } catch {
+      // Continue anyway – AdventureScreen will handle fallback
+    }
+    // Ensure minimum cinematic time
+    const elapsed = Date.now() - startedAt
+    const remaining = Math.max(0, MIN_CINEMATIC_MS - elapsed)
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining))
+    setCurrentLocationId(firstLocation.id)
     setPhase('playing')
-    goPlay(wId, { locationId: locations[0]?.id })
+    goPlay(wId, { locationId: firstLocation.id })
   }
 
   if (!world) {
@@ -220,10 +240,11 @@ export function BlueprintScreen() {
               className="sm:w-auto"
             />
             <ChoiceButton
-              label="Entrar na aventura"
+              label={isEntering ? 'Entrando...' : 'Entrar na aventura'}
               variant="gold"
               icon={<Play />}
               onClick={() => setShowEnterConfirm(true)}
+              disabled={isEntering}
               className="sm:w-auto"
             />
           </div>
@@ -255,6 +276,14 @@ export function BlueprintScreen() {
         variant="danger"
         onConfirm={() => { setShowBackConfirm(false); goMenu() }}
         onCancel={() => setShowBackConfirm(false)}
+      />
+
+      {/* fullscreen cinematic while entering world */}
+      <FullscreenCinematic
+        open={isEntering}
+        label="Entrando no mundo..."
+        sublabel={world ? `Preparando ${locations[0]?.name ?? 'o primeiro local'}` : undefined}
+        imageUrl={locations[0]?.imageUrl}
       />
     </>
   )

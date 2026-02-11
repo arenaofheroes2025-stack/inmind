@@ -40,6 +40,7 @@ import { HPBar } from '../components/HPBar'
 import { InventoryPanel } from '../components/InventoryPanel'
 import { LevelUpModal } from '../components/LevelUpModal'
 import { LoadingCinematic } from '../components/LoadingCinematic'
+import { FullscreenCinematic } from '../components/FullscreenCinematic'
 import { NarrativeText, extractNarrativeTags, TAG_STYLES } from '../components/NarrativeText'
 import type { NarrativeTag } from '../components/NarrativeText'
 import { SectionCard } from '../components/SectionCard'
@@ -173,6 +174,11 @@ export function AdventureScreen() {
   const [showInventory, setShowInventory] = useState(false)
   const [showIntroNarrative, setShowIntroNarrative] = useState(false)
   const [introSeen, setIntroSeen] = useState(false)
+  const [showTravelCinematic, setShowTravelCinematic] = useState(false)
+  const [travelCinematicLabel, setTravelCinematicLabel] = useState('')
+  const [travelCinematicSublabel, setTravelCinematicSublabel] = useState<string | undefined>(undefined)
+  const [travelCinematicImage, setTravelCinematicImage] = useState<string | undefined>(undefined)
+  const travelCinematicStartRef = useRef<number>(0)
 
   /* ── XP / Level-up state ── */
 
@@ -430,6 +436,19 @@ export function AdventureScreen() {
       contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
   }, [scene])
+
+  /* ── close travel cinematic once loading + narration finish (or fail) ── */
+  useEffect(() => {
+    if (showTravelCinematic && !isLoading && !isNarrating) {
+      const elapsed = Date.now() - travelCinematicStartRef.current
+      const remaining = Math.max(0, MIN_CINEMATIC_MS - elapsed)
+      if (remaining > 0) {
+        const t = setTimeout(() => setShowTravelCinematic(false), remaining)
+        return () => clearTimeout(t)
+      }
+      setShowTravelCinematic(false)
+    }
+  }, [showTravelCinematic, isLoading, isNarrating])
 
   /* ── narrative tags available for interaction ── */
   const availableTags: NarrativeTag[] = scene ? extractNarrativeTags(scene.description) : []
@@ -858,14 +877,44 @@ export function AdventureScreen() {
     }
   }
 
-  const confirmTravel = () => {
+  const MIN_CINEMATIC_MS = 6000
+
+  const confirmTravel = async () => {
     if (!travelTarget) return
+    const targetName = travelTarget.name
+    const targetId = travelTarget.id
+
+    // Show fullscreen cinematic
+    setTravelCinematicLabel(`Viajando para ${targetName}...`)
+    setTravelCinematicSublabel('Preparando o local de destino')
+    setTravelCinematicImage(travelTarget.imageUrl)
+    setShowTravelCinematic(true)
+    travelCinematicStartRef.current = Date.now()
+    const startedAt = Date.now()
+
+    // Clear current scene state
     narratedLocationRef.current = null
     setOutcomeText(null)
     setScene(null)
-    setCurrentLocationId(travelTarget.id)
     setTravelTarget(null)
     setShowMap(false)
+
+    // Pre-load location content while cinematic plays
+    try {
+      const loc = await getLocation(targetId)
+      if (loc) await getOrCreateLocationContent(loc, world ?? undefined)
+    } catch {
+      // Continue anyway – content will be loaded by the normal effect
+    }
+
+    // Ensure minimum cinematic time before switching location
+    const elapsed = Date.now() - startedAt
+    const remaining = Math.max(0, MIN_CINEMATIC_MS - elapsed)
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining))
+
+    // Now switch location (triggers data load + narration)
+    setCurrentLocationId(targetId)
+    // Cinematic will close once isLoading + isNarrating finish
   }
 
   /* ── Level-Up confirm handler ── */
@@ -2659,6 +2708,14 @@ export function AdventureScreen() {
         character={levelUpChar!}
         newLevel={levelUpNewLevel}
         onConfirm={handleLevelUpConfirm}
+      />
+
+      {/* fullscreen cinematic during travel / initial load */}
+      <FullscreenCinematic
+        open={showTravelCinematic}
+        label={travelCinematicLabel}
+        sublabel={travelCinematicSublabel}
+        imageUrl={travelCinematicImage}
       />
     </>
   )

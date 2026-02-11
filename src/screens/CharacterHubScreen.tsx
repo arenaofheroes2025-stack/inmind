@@ -24,10 +24,12 @@ import { useEffect, useState } from 'react'
 import { CharacterPortrait } from '../components/CharacterPortrait'
 import { ChoiceButton } from '../components/ChoiceButton'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { FullscreenCinematic } from '../components/FullscreenCinematic'
 import { HPBar } from '../components/HPBar'
 import { StatChip } from '../components/StatChip'
-import type { Character } from '../data/types'
-import { listCharactersByWorld, saveCharacter } from '../services/cache'
+import type { Character, Location } from '../data/types'
+import { listCharactersByWorld, saveCharacter, listLocationsByWorld } from '../services/cache'
+import { getOrCreateLocationContent } from '../services/locationArchitect'
 import { useGameStore } from '../store/useGameStore'
 import { useNavigateGame } from '../app/routes'
 
@@ -51,6 +53,8 @@ export function CharacterHubScreen() {
   const worldId = world?.id ?? currentWorldId
   const [showBackConfirm, setShowBackConfirm] = useState(false)
   const [charsReady, setCharsReady] = useState(false)
+  const [isEntering, setIsEntering] = useState(false)
+  const [locations, setLocations] = useState<Location[]>([])
 
   useEffect(() => {
     if (!worldId) return
@@ -66,6 +70,37 @@ export function CharacterHubScreen() {
     loadCharacters()
     return () => { mounted = false }
   }, [setSavedCharacters, worldId])
+
+  // Load locations for pre-loading on enter
+  useEffect(() => {
+    if (!worldId) return
+    let mounted = true
+    listLocationsByWorld(worldId).then((locs) => {
+      if (mounted) setLocations(locs)
+    })
+    return () => { mounted = false }
+  }, [worldId])
+
+  const MIN_CINEMATIC_MS = 6000
+
+  const handleEnterWorld = async () => {
+    if (!worldId) return
+    setIsEntering(true)
+    const startedAt = Date.now()
+    const firstLocation = locations[0]
+    try {
+      if (firstLocation) {
+        await getOrCreateLocationContent(firstLocation, world ?? undefined)
+      }
+    } catch {
+      // Continue anyway
+    }
+    // Ensure minimum cinematic time
+    const elapsed = Date.now() - startedAt
+    const remaining = Math.max(0, MIN_CINEMATIC_MS - elapsed)
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining))
+    goPlay(worldId, { locationId: firstLocation?.id })
+  }
 
   const activeCharacters = savedCharacters.filter((c) => !c.disabled)
   const canCreate = savedCharacters.length < MAX_PARTY
@@ -508,12 +543,12 @@ export function CharacterHubScreen() {
           </button>
           <button
             type="button"
-            onClick={() => { if (worldId) goPlay(worldId) }}
-            disabled={activeCharacters.length === 0}
+            onClick={handleEnterWorld}
+            disabled={activeCharacters.length === 0 || isEntering}
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-sm border border-gold/30 bg-gradient-to-r from-gold/15 to-gold/5 px-6 text-[10px] font-bold uppercase tracking-wider text-gold transition-all hover:border-gold/50 hover:from-gold/25 hover:to-gold/10 hover:shadow-[0_0_20px_rgba(201,168,76,0.12)] disabled:opacity-30 disabled:hover:border-gold/30 disabled:hover:from-gold/15 disabled:hover:shadow-none"
             style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
           >
-            <span>Entrar no Mundo</span>
+            <span>{isEntering ? 'Entrando...' : 'Entrar no Mundo'}</span>
             <ChevronRight className="h-4 w-4" />
           </button>
         </motion.div>
@@ -532,6 +567,14 @@ export function CharacterHubScreen() {
           goMenu()
         }}
         onCancel={() => setShowBackConfirm(false)}
+      />
+
+      {/* fullscreen cinematic while entering world */}
+      <FullscreenCinematic
+        open={isEntering}
+        label="Entrando no mundo..."
+        sublabel={world ? `Preparando ${locations[0]?.name ?? 'sua aventura'}` : undefined}
+        imageUrl={locations[0]?.imageUrl}
       />
     </>
   )
