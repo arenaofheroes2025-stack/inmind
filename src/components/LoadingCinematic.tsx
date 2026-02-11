@@ -10,7 +10,7 @@ export function LoadingCinematic({ label = 'Gerando mundo...' }: LoadingCinemati
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.3 }}
       className="flex flex-col items-center gap-5"
     >
       {/* video frame */}
@@ -46,11 +46,7 @@ export function LoadingCinematic({ label = 'Gerando mundo...' }: LoadingCinemati
 
       {/* label */}
       <div className="flex items-center gap-2.5">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-          className="h-4 w-4 rounded-full border-2 border-gold/30 border-t-gold"
-        />
+        <div className="h-4 w-4 rounded-full border-2 border-gold/30 border-t-gold animate-spin" style={{ animationDuration: '2s' }} />
         <p className="font-display text-sm tracking-wide text-gold/80 animate-pulse">
           {label}
         </p>

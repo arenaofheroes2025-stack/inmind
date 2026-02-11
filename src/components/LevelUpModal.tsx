@@ -81,34 +81,35 @@ export function LevelUpModal({ open, character, newLevel, onConfirm }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
           {/* backdrop */}
           <div className="absolute inset-0 bg-obsidian/80 backdrop-blur-sm" />
 
-          {/* particles / sparkle overlay */}
+          {/* particles / sparkle overlay — reduced count for iOS performance */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.15 }}
           >
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute h-1.5 w-1.5 rounded-full bg-gold"
                 style={{
-                  left: `${10 + Math.random() * 80}%`,
-                  top: `${10 + Math.random() * 80}%`,
+                  left: `${15 + (i % 2) * 70}%`,
+                  top: `${20 + (i < 2 ? 0 : 60)}%`,
                 }}
                 animate={{
-                  y: [0, -30 - Math.random() * 40],
-                  opacity: [0.8, 0],
-                  scale: [1, 0.3],
+                  y: [0, -24],
+                  opacity: [0.6, 0],
                 }}
                 transition={{
-                  duration: 1.5 + Math.random(),
+                  duration: 1.2,
                   repeat: Infinity,
-                  delay: Math.random() * 2,
+                  delay: i * 0.3,
+                  ease: 'easeOut',
                 }}
               />
             ))}
@@ -117,10 +118,10 @@ export function LevelUpModal({ open, character, newLevel, onConfirm }: Props) {
           {/* modal content */}
           <motion.div
             className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gold/40 bg-gradient-to-b from-panel via-surface to-panel shadow-[0_0_60px_rgba(201,168,76,0.25)]"
-            initial={{ scale: 0.7, y: 40 }}
+            initial={{ scale: 0.85, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.8, y: 30, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 22 }}
           >
             {/* gold accent top */}
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-gold to-transparent" />

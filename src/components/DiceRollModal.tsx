@@ -252,13 +252,14 @@ export function DiceRollModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md"
         >
           <motion.div
-            initial={{ scale: 0.85, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.85, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 200 }}
             className={`relative mx-4 w-full max-w-md overflow-hidden rounded-2xl border bg-gradient-to-b from-panel via-surface to-panel ${
               phase === 'result' && outcome
                 ? `${outcome.border} ${outcome.glow}`
@@ -630,9 +631,9 @@ export function DiceRollModal({
               <AnimatePresence>
                 {phase === 'result' && outcome && (
                   <motion.div
-                    initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 12, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: 0.4, type: 'spring', damping: 15 }}
+                    transition={{ delay: 0.2, type: 'spring', damping: 16, stiffness: 180 }}
                     className={`mb-4 mt-2 rounded-xl border p-4 text-center ${outcome.border} ${outcome.bg}`}
                   >
                     <p className={`font-display-decorative text-xl font-black ${outcome.color}`}>
