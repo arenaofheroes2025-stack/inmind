@@ -1,0 +1,49 @@
+{
+  "name": "InMind RPG",
+  "short_name": "InMind",
+  "description": "RPG narrativo imersivo com IA generativa. Crie mundos únicos, forje seus heróis e embarque em aventuras procedurais.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0f1923",
+  "background_color": "#0f1923",
+  "icons": [
+    {
+      "src": "/images/Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/Logo.png",
+      "type": "image/png",
+      "sizes": "540x720",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["games"],
+  "shortcuts": [
+    {
+      "name": "Nova Aventura",
+      "short_name": "Nova",
+      "description": "Criar uma nova aventura",
+      "url": "/nova-aventura",
+      "icons": [
+        {
+          "src": "/images/Logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Flame, ScrollText } from 'lucide-react'
+import { ScrollText } from 'lucide-react'
 import { BlueprintScreen } from '../screens/BlueprintScreen'
 import { AdventureScreen } from '../screens/AdventureScreen'
 import { CharacterCreateScreen } from '../screens/CharacterCreateScreen'
@@ -26,12 +26,6 @@ export default function App() {
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            {/* logo icon with ornate border */}
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gold/30 bg-gradient-to-br from-gold/15 to-bronze/15 shadow-[0_0_16px_rgba(201,168,76,0.15)]">
-              <Flame className="h-5 w-5 text-gold" />
-              {/* inner frame line */}
-              <div className="absolute inset-[2px] rounded-[5px] border border-gold/10" />
-            </div>
             <div className="flex flex-col">
               <span className="font-display-decorative text-sm font-bold tracking-wider text-gold">
                 InMind
