@@ -32,7 +32,7 @@ interface AudioContextValue {
 
 const AudioCtx = createContext<AudioContextValue>({
   isPlaying: false,
-  volume: 0.3,
+  volume: 0.42,
   enabled: false,
   toggle: () => {},
   setVolume: () => {},
@@ -50,7 +50,7 @@ function loadPrefs(): { volume: number; muted: boolean } {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
-  return { volume: 0.3, muted: false }
+  return { volume: 0.42, muted: false }
 }
 
 function savePrefs(volume: number, muted: boolean) {

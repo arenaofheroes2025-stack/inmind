@@ -24,7 +24,7 @@ export default function App() {
       </div>
 
       {/* ══ top bar — ornate header ══ */}
-      <header className="relative z-10 border-b border-gold/15 bg-panel/80 backdrop-blur-lg">
+      <header className="relative z-50 border-b border-gold/15 bg-panel/80 backdrop-blur-lg">
         {/* gold gradient line at bottom */}
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">

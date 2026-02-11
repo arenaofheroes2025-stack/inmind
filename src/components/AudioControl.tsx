@@ -70,7 +70,7 @@ export function AudioControl() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 w-52 origin-top-right rounded-lg border border-gold/15 bg-panel/95 p-3 shadow-xl backdrop-blur-xl"
+            className="absolute right-0 top-full z-[9998] mt-2 w-52 origin-top-right rounded-lg border border-gold/15 bg-panel/95 p-3 shadow-xl backdrop-blur-xl"
           >
             {/* play / pause */}
             <button
