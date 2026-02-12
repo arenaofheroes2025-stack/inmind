@@ -72,6 +72,14 @@ const STORY_SYSTEM_PROMPT =
   '  As escolhas devem ser DINAMICAS — mudam conforme o contexto narrativo, as acoes anteriores dos jogadores e os resultados dos dados.\n' +
   '  Se o jogador interagiu com outro elemento (um [npc:], [item:], [location:]) em vez de seguir uma [choice:] anterior, as novas escolhas devem REFLETIR essa interacao.\n' +
   '  As escolhas NAO sao fixas — evoluem com a historia.\n\n' +
+  'DIALOGOS DE PERSONAGENS (IMPORTANTE):\n' +
+  '- Quando fizer sentido narrativamente, INCLUA FALAS DIRETAS de NPCs, inimigos ou criaturas usando aspas duplas ("").\n' +
+  '- Exemplo: [npc:O velho mago] se aproxima com olhar grave e diz: "Vocês não sabem o que os aguarda além dessas montanhas."\n' +
+  '- Exemplo com inimigo: [enemy:O líder goblin] rosna e grita: "Peguem os intrusos! Não deixem nenhum escapar!"\n' +
+  '- As falas devem ser CURTAS (1-2 frases), ter PERSONALIDADE e refletir o CARÁTER do personagem.\n' +
+  '- NÃO force diálogos em toda cena — use quando a interação verbal for natural e enriquecer a narrativa.\n' +
+  '- Vilões devem soar ameaçadores, aliados devem soar acolhedores ou sábios, criaturas podem grunhir ou bramir.\n' +
+  '- O herói NUNCA fala — apenas os NPCs e inimigos têm falas diretas na narrativa.\n\n' +
   'REGRAS RIGIDAS:\n' +
   '1. Responda APENAS com JSON valido. Sem markdown, sem comentarios, sem texto fora do JSON.\n' +
   '2. Siga EXATAMENTE o schema fornecido. Nao adicione campos extras. Nao omita campos.\n' +

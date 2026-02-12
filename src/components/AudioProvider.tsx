@@ -10,9 +10,21 @@ import {
 import { useLocation } from 'react-router-dom'
 
 /* ──────────────────────────────────────────────
-   Routes where the main theme should play
+   Track definitions
    ────────────────────────────────────────────── */
-const MUSIC_ROUTES = ['/', '/nova-aventura']
+type TrackId = 'menu' | 'adventure' | null
+
+const TRACKS: Record<Exclude<TrackId, null>, { src: string; defaultVolume: number }> = {
+  menu: { src: '/audios/main_theme.mp3', defaultVolume: 0.42 },
+  adventure: { src: '/audios/nova_aventura.mp3', defaultVolume: 0.3 },
+}
+
+/** Determine which track should play based on current route */
+function getTrackForRoute(pathname: string): TrackId {
+  if (pathname === '/' || pathname === '/nova-aventura') return 'menu'
+  if (pathname.startsWith('/aventura/')) return 'adventure'
+  return null
+}
 
 /* ──────────────────────────────────────────────
    Context shape
@@ -22,7 +34,7 @@ interface AudioContextValue {
   isPlaying: boolean
   /** Current volume 0–1 */
   volume: number
-  /** Whether music is enabled on supported routes */
+  /** Whether music is enabled on current route */
   enabled: boolean
   /** Toggle play / pause */
   toggle: () => void
@@ -32,7 +44,7 @@ interface AudioContextValue {
 
 const AudioCtx = createContext<AudioContextValue>({
   isPlaying: false,
-  volume: 0.42,
+  volume: 0.3,
   enabled: false,
   toggle: () => {},
   setVolume: () => {},
@@ -45,12 +57,17 @@ export const useAudio = () => useContext(AudioCtx)
    ────────────────────────────────────────────── */
 const STORAGE_KEY = 'inmind_audio'
 
-function loadPrefs(): { volume: number; muted: boolean } {
+interface SavedPrefs {
+  volume: number
+  muted: boolean
+}
+
+function loadPrefs(): SavedPrefs {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
-  return { volume: 0.42, muted: false }
+  return { volume: 0.3, muted: false }
 }
 
 function savePrefs(volume: number, muted: boolean) {
@@ -59,9 +76,24 @@ function savePrefs(volume: number, muted: boolean) {
   } catch { /* ignore */ }
 }
 
+/** Fade out an audio element and pause it */
+function fadeOutAudio(audio: HTMLAudioElement, targetVolume: number): number {
+  const step = 0.02
+  const interval = window.setInterval(() => {
+    if (audio.volume > step) {
+      audio.volume = Math.max(0, audio.volume - step)
+    } else {
+      clearInterval(interval)
+      audio.pause()
+      audio.currentTime = 0
+      audio.volume = targetVolume // restore for next play
+    }
+  }, 30)
+  return interval
+}
+
 export function AudioProvider({ children }: { children: ReactNode }) {
   const location = useLocation()
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const prefs = useRef(loadPrefs())
   const [volume, setVolumeState] = useState(prefs.current.volume)
@@ -69,101 +101,156 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [userInteracted, setUserInteracted] = useState(false)
 
-  // Determine if current route supports music
-  const onMusicRoute = MUSIC_ROUTES.includes(location.pathname)
+  // Audio elements — one per track, created once
+  const audiosRef = useRef<Record<string, HTMLAudioElement>>({})
+  const activeTrackRef = useRef<TrackId>(null)
+  const fadeIntervalRef = useRef<number | null>(null)
 
-  // Create audio element once
+  const desiredTrack = getTrackForRoute(location.pathname)
+
+  // Create audio elements once
   useEffect(() => {
-    const audio = new Audio('/audios/main_theme.mp3')
-    audio.loop = true
-    audio.volume = prefs.current.volume
-    audio.preload = 'auto'
-    audioRef.current = audio
+    const map: Record<string, HTMLAudioElement> = {}
+    for (const [id, cfg] of Object.entries(TRACKS)) {
+      const audio = new Audio(cfg.src)
+      audio.loop = true
+      audio.volume = prefs.current.volume
+      audio.preload = 'auto'
+      map[id] = audio
+    }
+    audiosRef.current = map
 
-    const handlePlay = () => setIsPlaying(true)
-    const handlePause = () => setIsPlaying(false)
-    audio.addEventListener('play', handlePlay)
-    audio.addEventListener('pause', handlePause)
+    // Sync isPlaying state
+    const handlers: Array<() => void> = []
+    for (const audio of Object.values(map)) {
+      const onPlay = () => setIsPlaying(true)
+      const onPause = () => {
+        // Only set false if no other track is playing
+        const anyPlaying = Object.values(audiosRef.current).some((a) => !a.paused)
+        if (!anyPlaying) setIsPlaying(false)
+      }
+      audio.addEventListener('play', onPlay)
+      audio.addEventListener('pause', onPause)
+      handlers.push(() => {
+        audio.removeEventListener('play', onPlay)
+        audio.removeEventListener('pause', onPause)
+      })
+    }
 
     return () => {
-      audio.removeEventListener('play', handlePlay)
-      audio.removeEventListener('pause', handlePause)
-      audio.pause()
-      audio.src = ''
+      handlers.forEach((h) => h())
+      for (const audio of Object.values(map)) {
+        audio.pause()
+        audio.src = ''
+      }
     }
   }, [])
 
   // Capture first user interaction to unlock autoplay
   useEffect(() => {
     if (userInteracted) return
-    const unlock = () => setUserInteracted(true)
+    const unlock = () => {
+      setUserInteracted(true)
+      // Immediately try to play on unlock if on a music route
+      const track = getTrackForRoute(window.location.pathname)
+      if (track && !muted) {
+        const audio = audiosRef.current[track]
+        if (audio && audio.paused) {
+          audio.volume = volume
+          audio.play().catch(() => {})
+        }
+      }
+    }
     const events = ['click', 'touchstart', 'keydown'] as const
     events.forEach((e) => document.addEventListener(e, unlock, { once: true }))
     return () => events.forEach((e) => document.removeEventListener(e, unlock))
-  }, [userInteracted])
+  }, [userInteracted, muted, volume])
 
-  // Play/pause based on route + mute state + user interaction
+  // Switch tracks based on route
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audios = audiosRef.current
+    const prevTrack = activeTrackRef.current
 
-    if (onMusicRoute && !muted && userInteracted) {
-      audio.play().catch(() => { /* browser blocked — ignore */ })
-    } else if (!onMusicRoute) {
-      // Fade out when leaving music routes
-      const fadeOut = () => {
-        const step = 0.02
-        const interval = setInterval(() => {
-          if (audio.volume > step) {
-            audio.volume = Math.max(0, audio.volume - step)
-          } else {
-            clearInterval(interval)
-            audio.pause()
-            audio.currentTime = 0
-            audio.volume = volume // restore for next play
-          }
-        }, 30)
-        return interval
+    // Clear any pending fade
+    if (fadeIntervalRef.current != null) {
+      clearInterval(fadeIntervalRef.current)
+      fadeIntervalRef.current = null
+    }
+
+    // If same track, just ensure it's playing (or paused if muted)
+    if (desiredTrack === prevTrack) {
+      if (desiredTrack && !muted && userInteracted) {
+        const audio = audios[desiredTrack]
+        if (audio && audio.paused) {
+          audio.volume = volume
+          audio.play().catch(() => {})
+        }
       }
-      if (!audio.paused) {
-        const id = fadeOut()
-        return () => clearInterval(id)
+      return
+    }
+
+    // Fade out previous track
+    if (prevTrack && audios[prevTrack] && !audios[prevTrack].paused) {
+      fadeIntervalRef.current = fadeOutAudio(audios[prevTrack], volume)
+    }
+
+    // Start new track
+    activeTrackRef.current = desiredTrack
+    if (desiredTrack && !muted && userInteracted) {
+      const audio = audios[desiredTrack]
+      if (audio) {
+        audio.volume = volume
+        audio.play().catch(() => {})
       }
     }
-  }, [onMusicRoute, muted, userInteracted, volume])
 
-  // Sync volume to audio element
-  useEffect(() => {
-    if (audioRef.current && onMusicRoute) {
-      audioRef.current.volume = volume
+    return () => {
+      if (fadeIntervalRef.current != null) {
+        clearInterval(fadeIntervalRef.current)
+        fadeIntervalRef.current = null
+      }
     }
-  }, [volume, onMusicRoute])
+  }, [desiredTrack, muted, userInteracted, volume])
+
+  // Sync volume to active audio element
+  useEffect(() => {
+    if (desiredTrack) {
+      const audio = audiosRef.current[desiredTrack]
+      if (audio && !audio.paused) {
+        audio.volume = volume
+      }
+    }
+  }, [volume, desiredTrack])
 
   const toggle = useCallback(() => {
     const next = !muted
     setMuted(next)
     savePrefs(volume, next)
 
-    const audio = audioRef.current
-    if (!audio) return
-    if (next) {
-      audio.pause()
-    } else if (onMusicRoute) {
-      audio.volume = volume
-      audio.play().catch(() => {})
+    if (desiredTrack) {
+      const audio = audiosRef.current[desiredTrack]
+      if (!audio) return
+      if (next) {
+        audio.pause()
+      } else {
+        audio.volume = volume
+        audio.play().catch(() => {})
+      }
     }
-  }, [muted, volume, onMusicRoute])
+  }, [muted, volume, desiredTrack])
 
   const setVolume = useCallback(
     (v: number) => {
       const clamped = Math.max(0, Math.min(1, v))
       setVolumeState(clamped)
       savePrefs(clamped, muted)
-      if (audioRef.current) {
-        audioRef.current.volume = clamped
+      // Apply to currently playing track
+      if (desiredTrack) {
+        const audio = audiosRef.current[desiredTrack]
+        if (audio) audio.volume = clamped
       }
     },
-    [muted],
+    [muted, desiredTrack],
   )
 
   return (
@@ -171,7 +258,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       value={{
         isPlaying,
         volume,
-        enabled: onMusicRoute,
+        enabled: desiredTrack !== null,
         toggle,
         setVolume,
       }}

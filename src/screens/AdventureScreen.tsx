@@ -41,6 +41,7 @@ import { InventoryPanel } from '../components/InventoryPanel'
 import { LevelUpModal } from '../components/LevelUpModal'
 import { LoadingCinematic } from '../components/LoadingCinematic'
 import { FullscreenCinematic } from '../components/FullscreenCinematic'
+import { NarrationButton } from '../components/NarrationButton'
 import { NarrativeText, extractNarrativeTags, TAG_STYLES } from '../components/NarrativeText'
 import type { NarrativeTag } from '../components/NarrativeText'
 import { SectionCard } from '../components/SectionCard'
@@ -1246,6 +1247,7 @@ export function AdventureScreen() {
                     <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-gold/70">
                       <Target className="h-3 w-3" />
                       Resultado
+                      <NarrationButton text={outcomeText} autoPlay size="sm" />
                     </p>
                     <NarrativeText text={outcomeText} />
 
@@ -1268,39 +1270,39 @@ export function AdventureScreen() {
                         comum: 'Comum', incomum: 'Incomum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário',
                       }
                       return (
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           {hasXp && (
-                            <div className="flex items-center gap-3 rounded-lg border border-gold/30 bg-gold/10 px-4 py-3 text-gold">
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-sm font-bold">✧</div>
-                              <div className="flex-1">
-                                <p className="text-xs font-bold">Experiência Ganha!</p>
-                                <p className="text-sm font-semibold">+{latest.xpGained} EXP</p>
+                            <div className="flex items-center gap-2 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-gold">
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-bold">✧</div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-bold leading-tight">Experiência</p>
+                                <p className="text-xs font-semibold">+{latest.xpGained} EXP</p>
                               </div>
                             </div>
                           )}
                           {hasItems && latest.itemsObtained!.map((it, idx) => (
                             <div
                               key={idx}
-                              className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${rarityColors[it.rarity] || rarityColors.comum}`}
+                              className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${rarityColors[it.rarity] || rarityColors.comum}`}
                             >
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10 text-lg">✦</div>
-                              <div className="flex-1">
-                                <p className="text-xs font-bold">Item Obtido!</p>
-                                <p className="text-sm font-semibold">{it.name}</p>
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/10 text-sm">✦</div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[10px] font-bold leading-tight">Item Obtido</p>
+                                <p className="truncate text-xs font-semibold">{it.name}</p>
                               </div>
-                              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${rarityColors[it.rarity] || rarityColors.comum}`}>
+                              <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase ${rarityColors[it.rarity] || rarityColors.comum}`}>
                                 {rarityLabels[it.rarity] || it.rarity}
                               </span>
                             </div>
                           ))}
                           {hasGold && (
-                            <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${
+                            <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
                               latest.goldObtained! > 0 ? 'border-gold/30 bg-gold/10 text-gold' : 'border-crimson/30 bg-crimson/10 text-crimson'
                             }`}>
-                              <Coins className="h-5 w-5" />
-                              <div className="flex-1">
-                                <p className="text-xs font-bold">{latest.goldObtained! > 0 ? 'Ouro Recebido!' : 'Ouro Perdido!'}</p>
-                                <p className="text-sm font-semibold">{latest.goldObtained! > 0 ? '+' : ''}{latest.goldObtained} ouro</p>
+                              <Coins className="h-4 w-4 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-bold leading-tight">{latest.goldObtained! > 0 ? 'Ouro Recebido' : 'Ouro Perdido'}</p>
+                                <p className="text-xs font-semibold">{latest.goldObtained! > 0 ? '+' : ''}{latest.goldObtained} ouro</p>
                               </div>
                             </div>
                           )}
@@ -1338,7 +1340,10 @@ export function AdventureScreen() {
                   <CornerAccent pos="bl" />
                   <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
                   <div className="p-5 sm:p-6">
-                    <Badge label="Narrativa" variant="gold" icon={<ScrollText />} size="sm" />
+                    <div className="flex items-center justify-between">
+                      <Badge label="Narrativa" variant="gold" icon={<ScrollText />} size="sm" />
+                      <NarrationButton text={scene.description} autoPlay size="sm" />
+                    </div>
                     <h3 className="mt-3 font-display text-lg font-bold text-ink">{scene.title}</h3>
                     <NarrativeText text={scene.description} />
                   </div>

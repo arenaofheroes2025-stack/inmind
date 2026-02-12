@@ -7,6 +7,7 @@ import { rollD20 } from '../utils/dice'
 import { getEquipment } from '../services/cache'
 import { CharacterDetailCard } from './CharacterDetailCard'
 import { CharacterPortrait } from './CharacterPortrait'
+import { NarrationButton } from './NarrationButton'
 import { TAG_STYLES } from './NarrativeText'
 import type { NarrativeTag } from './NarrativeText'
 
@@ -253,14 +254,15 @@ export function DiceRollModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 backdrop-blur-md"
         >
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: 'spring', damping: 18, stiffness: 200 }}
-            className={`relative mx-4 w-full max-w-md overflow-hidden rounded-2xl border bg-gradient-to-b from-panel via-surface to-panel ${
+            className={`relative w-full max-w-md overflow-hidden rounded-2xl border bg-gradient-to-b from-panel via-surface to-panel ${
               phase === 'result' && outcome
                 ? `${outcome.border} ${outcome.glow}`
                 : 'border-gold/20 shadow-[0_0_60px_rgba(201,168,76,0.1)]'
@@ -308,10 +310,13 @@ export function DiceRollModal({
 
               {/* ── ACTION DETAILS ── */}
               <div className="mb-5">
-                <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] text-gold/60">
-                  <Zap className="h-3 w-3" />
-                  Acao escolhida
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] text-gold/60">
+                    <Zap className="h-3 w-3" />
+                    Acao escolhida
+                  </p>
+                  <NarrationButton text={actionDescription} autoPlay size="sm" />
+                </div>
                 <p className="mt-2 font-display text-sm font-bold text-ink">
                   {actionDescription}
                 </p>
@@ -711,6 +716,7 @@ export function DiceRollModal({
               </div>
             </div>
           </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

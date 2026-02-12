@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Volume2, VolumeX, Minus, Plus } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAudio } from './AudioProvider'
@@ -13,6 +14,17 @@ export function AudioControl() {
   const [open, setOpen] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 })
+
+  // Update popover position relative to button
+  useEffect(() => {
+    if (!open || !buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    setPopoverPos({
+      top: rect.bottom + 8,
+      right: window.innerWidth - rect.right,
+    })
+  }, [open])
 
   // Close popover on outside click
   useEffect(() => {
@@ -61,17 +73,19 @@ export function AudioControl() {
         )}
       </button>
 
-      {/* popover */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            ref={popoverRef}
-            initial={{ opacity: 0, y: -4, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-[9998] mt-2 w-52 origin-top-right rounded-lg border border-gold/15 bg-panel/95 p-3 shadow-xl backdrop-blur-xl"
-          >
+      {/* popover — rendered via portal so it's above all stacking contexts */}
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              ref={popoverRef}
+              initial={{ opacity: 0, y: -4, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="fixed z-[9998] w-52 origin-top-right rounded-lg border border-gold/15 bg-panel/95 p-3 shadow-xl backdrop-blur-xl"
+              style={{ top: popoverPos.top, right: popoverPos.right }}
+            >
             {/* play / pause */}
             <button
               type="button"
@@ -134,7 +148,9 @@ export function AudioControl() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body,
+      )}
     </div>
   )
 }
