@@ -321,9 +321,9 @@ export async function generateWorldBlueprint(
               '\n\nFormato esperado: {"world":{...},"locations":[...],"imagePrompts":{"map":"...","locations":{"loc-id":"..."}}}',
           },
         ],
-        maxCompletionTokens: 20000,
-        reasoningEffort: 'medium',
-        timeoutMs: 120_000, // 2 min — world gen is complex, 25s default is too short
+        maxCompletionTokens: 10000,
+        reasoningEffort: 'low',
+        timeoutMs: 90_000, // 90s — reduced tokens + low reasoning = faster
       })
 
       // Extract content from various API response formats (Azure OpenAI, OpenAI, etc.)
@@ -389,7 +389,11 @@ export async function generateWorldBlueprint(
   throw lastError ?? new Error('Falha ao gerar o mundo apos multiplas tentativas.')
 }
 
-export async function createAndCacheWorld(adventurePrompt: string) {
+export async function createAndCacheWorld(
+  adventurePrompt: string,
+  onProgress?: (stage: string) => void,
+) {
+  onProgress?.('Gerando mundo...')
   const { blueprint, imagePrompts } = await generateWorldBlueprint(adventurePrompt)
   // Pick the starting location: world.startingLocationId > first linked location from Act 1 > locations[0]
   const startLocId = blueprint.world.startingLocationId
@@ -415,20 +419,23 @@ export async function createAndCacheWorld(adventurePrompt: string) {
     updatedAt: new Date().toISOString(),
   }
 
+  onProgress?.('Salvando dados...')
   // 1) Persist world data to IndexedDB (fast — no images yet)
   await saveWorld(blueprint.world)
   await Promise.all(blueprint.locations.map((location) => saveLocation(location)))
   await saveSaveState(saveState)
-  console.log('[WorldArchitect] World JSON + locations saved to DB. Starting image generation in parallel...')
+  console.log('[WorldArchitect] World JSON + locations saved to DB.')
 
-  // 2) Generate ALL images in parallel (map + every location at once)
-  try {
-    await generateAllImages(blueprint.world, blueprint.locations, imagePrompts)
-    console.log('[WorldArchitect] All images done. mapUrl:', blueprint.world.mapUrl ? 'YES' : 'NO')
-    console.log('[WorldArchitect] Locations:', blueprint.locations.map(l => `${l.name}: ${l.imageUrl ? 'YES' : 'NO'}`).join(', '))
-  } catch (imgErr) {
-    console.error('[WorldArchitect] Image generation failed (non-fatal):', imgErr)
-  }
+  // 2) Generate images IN THE BACKGROUND — don't block navigation
+  onProgress?.('Gerando imagens em segundo plano...')
+  generateAllImages(blueprint.world, blueprint.locations, imagePrompts)
+    .then(() => {
+      console.log('[WorldArchitect] All images done. mapUrl:', blueprint.world.mapUrl ? 'YES' : 'NO')
+      console.log('[WorldArchitect] Locations:', blueprint.locations.map(l => `${l.name}: ${l.imageUrl ? 'YES' : 'NO'}`).join(', '))
+    })
+    .catch((imgErr) => {
+      console.error('[WorldArchitect] Image generation failed (non-fatal):', imgErr)
+    })
 
   return blueprint
 }
@@ -460,8 +467,8 @@ async function runWithConcurrency<T>(
   return results
 }
 
-/** Max 2 concurrent image requests to avoid 429 rate-limit errors */
-const IMAGE_CONCURRENCY = 2
+/** Max 4 concurrent image requests — faster generation with acceptable rate-limit risk */
+const IMAGE_CONCURRENCY = 4
 
 async function generateAllImages(
   world: World,

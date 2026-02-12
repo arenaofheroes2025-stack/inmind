@@ -146,6 +146,7 @@ export function TitleScreen() {
 
   const [showConfirmStart, setShowConfirmStart] = useState(false)
   const [showConfirmBack, setShowConfirmBack] = useState(false)
+  const [progressMessage, setProgressMessage] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -182,16 +183,21 @@ export function TitleScreen() {
     setShowConfirmStart(false)
     setGenerating(true)
     setError(null)
+    setProgressMessage('Iniciando criacao do mundo...')
 
     try {
       const prompt = buildPrompt()
-      const blueprint = await createAndCacheWorld(prompt)
+      const blueprint = await createAndCacheWorld(prompt, (stage) => {
+        setProgressMessage(stage)
+      })
+      setProgressMessage(null)
       setWorld(blueprint.world)
       setPhase('ready')
       const worlds = await listWorlds()
       setSavedWorlds(worlds)
       goCharacters(blueprint.world.id)
     } catch (err) {
+      setProgressMessage(null)
       setError(err instanceof Error ? err.message : 'Falha ao gerar mundo')
     } finally {
       setGenerating(false)
@@ -525,7 +531,7 @@ export function TitleScreen() {
             {/* navigation */}
             {isGenerating ? (
               <div className="flex justify-center py-4">
-                <LoadingCinematic label="Gerando mundo, mapa e locais..." />
+                <LoadingCinematic label={progressMessage ?? 'Gerando mundo...'} />
               </div>
             ) : (
               <div className="flex flex-col gap-3 sm:flex-row">
