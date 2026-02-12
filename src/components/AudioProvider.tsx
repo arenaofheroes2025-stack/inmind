@@ -21,9 +21,10 @@ const TRACKS: Record<Exclude<TrackId, null>, { src: string; defaultVolume: numbe
 
 /** Determine which track should play based on current route */
 function getTrackForRoute(pathname: string): TrackId {
-  if (pathname === '/' || pathname === '/nova-aventura') return 'menu'
-  if (pathname.startsWith('/aventura/')) return 'adventure'
-  return null
+  // Adventure gameplay — play adventure music
+  if (pathname.match(/^\/aventura\/[^/]+\/jogar/)) return 'adventure'
+  // All other screens (menu, new adventure, characters, blueprint, map) — play menu music
+  return 'menu'
 }
 
 /* ──────────────────────────────────────────────
