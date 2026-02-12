@@ -318,12 +318,17 @@ export async function generateWorldBlueprint(
             role: 'user',
             content:
               adventurePrompt +
-              '\n\nFormato esperado: {"world":{...},"locations":[...],"imagePrompts":{"map":"...","locations":{"loc-id":"..."}}}',
+              '\n\nGere o JSON COMPLETO com TODOS os campos obrigatorios:\n' +
+              '- "world": com id, title, genre, narrativeStyle, tone, synopsis, finalObjective, introNarrative, startingLocationId, createdAt\n' +
+              '- "world.acts": array com MINIMO 3 atos, cada um com id, title, goal, missions (min 3), keyNpcs, linkedLocations, requiredActId\n' +
+              '- "locations": array com 4-9 locais completos\n' +
+              '- "imagePrompts": com map e locations\n' +
+              'Formato: {"world":{...,"acts":[...]},"locations":[...],"imagePrompts":{"map":"...","locations":{"loc-id":"..."}}}',
           },
         ],
-        maxCompletionTokens: 10000,
-        reasoningEffort: 'low',
-        timeoutMs: 90_000, // 90s — reduced tokens + low reasoning = faster
+        maxCompletionTokens: 16000,
+        reasoningEffort: 'medium',
+        timeoutMs: 120_000, // 2 min — world gen needs enough time for full structure
       })
 
       // Extract content from various API response formats (Azure OpenAI, OpenAI, etc.)
