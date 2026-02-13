@@ -46,7 +46,7 @@ import { NarrativeText, extractNarrativeTags, TAG_STYLES } from '../components/N
 import type { NarrativeTag } from '../components/NarrativeText'
 import { SectionCard } from '../components/SectionCard'
 
-import type { Character, Equipment, Location, LocationContent, SaveState, ActionAttributes, BattleAttributes } from '../data/types'
+import type { Character, Equipment, Enemy, Location, LocationContent, SaveState, ActionAttributes, BattleAttributes } from '../data/types'
 import {
   getCharacter,
   getEquipment,
@@ -59,11 +59,13 @@ import {
   deleteScene,
   saveScene,
   saveSaveState,
+  saveBattle,
   saveDiaryEntry,
   listDiaryByWorld,
   saveCharacter,
   saveEquipment,
 } from '../services/cache'
+import { createBattle } from '../systems/battleEngine'
 import type { SceneCache, DiaryEntry, DiaryAction } from '../services/cache'
 import { getOrCreateLocationContent, generateLocationContent, cacheLocationContent } from '../services/locationArchitect'
 import { useGameStore } from '../store/useGameStore'
@@ -146,7 +148,7 @@ export function AdventureScreen() {
   const currentCharacterId = useGameStore((state) => state.currentCharacterId)
   const setWorld = useGameStore((state) => state.setWorld)
   const setCurrentLocationId = useGameStore((state) => state.setCurrentLocationId)
-  const { goMenu } = useNavigateGame()
+  const { goMenu, goBattle } = useNavigateGame()
 
   const [location, setLocation] = useState<Location | null>(null)
   const [availableLocations, setAvailableLocations] = useState<Location[]>([])
@@ -175,6 +177,9 @@ export function AdventureScreen() {
   const [showInventory, setShowInventory] = useState(false)
   const [showIntroNarrative, setShowIntroNarrative] = useState(false)
   const [introSeen, setIntroSeen] = useState(false)
+  const [introNarrationDone, setIntroNarrationDone] = useState(false)
+  const [showLocationContext, setShowLocationContext] = useState(false)
+  const [locationContextNarrationDone, setLocationContextNarrationDone] = useState(false)
   const [showTravelCinematic, setShowTravelCinematic] = useState(false)
   const [travelCinematicLabel, setTravelCinematicLabel] = useState('')
   const [travelCinematicSublabel, setTravelCinematicSublabel] = useState<string | undefined>(undefined)
@@ -238,6 +243,7 @@ export function AdventureScreen() {
           currentActId: world?.acts?.[0]?.id ?? '',
           completedActIds: [],
           completedMissionIds: [],
+          visitedLocationIds: [],
           phase: 'playing', updatedAt: new Date().toISOString(),
         }
         await saveSaveState(fallback)
@@ -401,8 +407,30 @@ export function AdventureScreen() {
 
           // Show intro narrative overlay on first scene load
           if (isIntro && world.introNarrative && !introSeen) {
+            setIntroNarrationDone(false)
             setShowIntroNarrative(true)
             setIntroSeen(true)
+          }
+
+          // Show location context modal on first visit to this location
+          // (skip if intro overlay is already showing — it covers the first location)
+          const visited = saveState?.visitedLocationIds ?? []
+          const isShowingIntro = isIntro && world.introNarrative && !introSeen
+          if (!visited.includes(location.id)) {
+            if (!isShowingIntro) {
+              setLocationContextNarrationDone(false)
+              setShowLocationContext(true)
+            }
+            // Mark location as visited
+            if (saveState) {
+              const updated: SaveState = {
+                ...saveState,
+                visitedLocationIds: [...visited, location.id],
+                updatedAt: new Date().toISOString(),
+              }
+              setSaveState(updated)
+              saveSaveState(updated)
+            }
           }
 
           // Persist scene to IndexedDB
@@ -430,17 +458,20 @@ export function AdventureScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.id, content?.id, world?.id])
 
-  /* ── auto-scroll to content when scene changes ── */
+  /* ── auto-scroll to top when scene changes or modals close ── */
   useEffect(() => {
-    if (!contentRef.current) return
-    setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 0)
-  }, [scene])
+    if (showIntroNarrative || showLocationContext || showDiary || showTravelCinematic) return
+    // Small delay to let the DOM settle after modal closes
+    const t = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 100)
+    return () => clearTimeout(t)
+  }, [scene, showIntroNarrative, showLocationContext, showDiary, showTravelCinematic])
 
-  /* ── close travel cinematic once loading + narration finish (or fail) ── */
+  /* ── close travel cinematic once loading + narration finish AND scene is ready ── */
   useEffect(() => {
-    if (showTravelCinematic && !isLoading && !isNarrating) {
+    // Only close cinematic when scene is fully generated (not null)
+    if (showTravelCinematic && !isLoading && !isNarrating && scene) {
       const elapsed = Date.now() - travelCinematicStartRef.current
       const remaining = Math.max(0, MIN_CINEMATIC_MS - elapsed)
       if (remaining > 0) {
@@ -449,7 +480,7 @@ export function AdventureScreen() {
       }
       setShowTravelCinematic(false)
     }
-  }, [showTravelCinematic, isLoading, isNarrating])
+  }, [showTravelCinematic, isLoading, isNarrating, scene])
 
   /* ── narrative tags available for interaction ── */
   const availableTags: NarrativeTag[] = scene ? extractNarrativeTags(scene.description) : []
@@ -1056,12 +1087,28 @@ export function AdventureScreen() {
             {/* action buttons (right side) */}
             <div className="ml-auto flex items-center gap-1.5">
               {[
+                { key: 'location-ctx', icon: <MapPin className="h-3.5 w-3.5" />, label: 'Local', active: showLocationContext, onClick: () => {
+                  if (!location || !content) return
+                  setLocationContextNarrationDone(true)
+                  setShowLocationContext(true)
+                } },
                 { key: 'log', icon: <ScrollText className="h-3.5 w-3.5" />, label: 'Log', active: showLog, badge: log.length || undefined, badgeColor: 'bg-ember/80', onClick: () => setShowLog(!showLog) },
                 { key: 'world', icon: <BookOpen className="h-3.5 w-3.5" />, label: 'Mundo', active: false, onClick: () => setShowWorldInfo(true) },
                 { key: 'data', icon: <Database className="h-3.5 w-3.5" />, label: 'Dados', active: false, onClick: () => setShowData(true) },
                 { key: 'diary', icon: <Book className="h-3.5 w-3.5" />, label: 'Diário', active: showDiary, badge: diaryEntries.length || undefined, badgeColor: 'bg-gold/80 text-obsidian', onClick: () => setShowDiary(true) },
                 { key: 'inventory', icon: <Backpack className="h-3.5 w-3.5" />, label: 'Mochila', active: showInventory, badge: partyCharacters.reduce((sum, c) => sum + (c.inventory?.length ?? 0), 0) || undefined, badgeColor: 'bg-gold/80 text-obsidian', onClick: () => setShowInventory(true) },
                 { key: 'missions', icon: <ListChecks className="h-3.5 w-3.5" />, label: 'Missões', active: showMissions, badge: totalMissionCount > 0 ? `${completedMissionCount}/${totalMissionCount}` : undefined, badgeColor: 'bg-arcane/80', onClick: () => setShowMissions(true) },
+                { key: 'battle-test', icon: <Swords className="h-3.5 w-3.5" />, label: 'Batalha', active: false, onClick: async () => {
+                  if (!currentWorldId || partyCharacters.length === 0) return
+                  const dangerLevel = location?.dangerLevel ?? 3
+                  const testEnemies: Enemy[] = [
+                    { id: 'test-enemy-1', name: 'Goblin Furioso', hp: 15 + dangerLevel * 3, maxHp: 15 + dangerLevel * 3, level: Math.max(1, Math.ceil(dangerLevel / 2)), behavior: 'Ataca ferozmente', attackPattern: 'Golpes rapidos', drops: [], battleAttributes: { velocidade: 8, ataque: 7 + dangerLevel, defesa: 4 + dangerLevel, magia: 3 }, skills: [], aiPattern: 'agressivo' },
+                    { id: 'test-enemy-2', name: 'Esqueleto Guerreiro', hp: 20 + dangerLevel * 3, maxHp: 20 + dangerLevel * 3, level: Math.max(1, Math.ceil(dangerLevel / 2)), behavior: 'Defensivo e calculista', attackPattern: 'Ataques pesados', drops: [], battleAttributes: { velocidade: 5, ataque: 6 + dangerLevel, defesa: 8 + dangerLevel, magia: 2 }, skills: [], aiPattern: 'defensivo' },
+                  ]
+                  const battle = createBattle(currentWorldId, location?.id ?? 'test-loc', partyCharacters, testEnemies)
+                  await saveBattle(battle)
+                  goBattle(currentWorldId, battle.id)
+                } },
               ].map((btn) => (
                 <button
                   key={btn.key}
@@ -1342,7 +1389,7 @@ export function AdventureScreen() {
                   <div className="p-5 sm:p-6">
                     <div className="flex items-center justify-between">
                       <Badge label="Narrativa" variant="gold" icon={<ScrollText />} size="sm" />
-                      <NarrationButton text={scene.description} autoPlay size="sm" />
+                      <NarrationButton text={scene.description} autoPlay={!showIntroNarrative && !showLocationContext} size="sm" />
                     </div>
                     <h3 className="mt-3 font-display text-lg font-bold text-ink">{scene.title}</h3>
                     <NarrativeText text={scene.description} />
@@ -1674,10 +1721,13 @@ export function AdventureScreen() {
                                           <>
                                         {/* narration */}
                                         <div className="border-t border-ink/5 px-3 py-2">
-                                          <p className="mb-1 flex items-center gap-1 text-[8px] uppercase tracking-[0.3em] text-gold/50">
-                                            <ScrollText className="h-2.5 w-2.5" />
-                                            Narrativa
-                                          </p>
+                                          <div className="mb-1 flex items-center gap-1">
+                                            <p className="flex items-center gap-1 text-[8px] uppercase tracking-[0.3em] text-gold/50">
+                                              <ScrollText className="h-2.5 w-2.5" />
+                                              Narrativa
+                                            </p>
+                                            <NarrationButton text={entry.sceneDescription} size="sm" />
+                                          </div>
                                           <div className="rounded-md border border-ink/5 bg-obsidian/30 px-2.5 py-1.5">
                                             <NarrativeText text={entry.sceneDescription} className="text-[10px]" />
                                           </div>
@@ -1739,8 +1789,11 @@ export function AdventureScreen() {
                                                   <p className="mt-1 text-[10px] text-ink-muted">
                                                     Ação: <span className="italic">{act.actionText}</span>
                                                   </p>
-                                                  <div className="mt-1.5 border-t border-ink/5 pt-1.5">
-                                                    <NarrativeText text={act.outcomeText} className="text-[10px]" />
+                                                  <div className="mt-1.5 flex items-center gap-1.5 border-t border-ink/5 pt-1.5">
+                                                    <div className="min-w-0 flex-1">
+                                                      <NarrativeText text={act.outcomeText} className="text-[10px]" />
+                                                    </div>
+                                                    <NarrationButton text={act.outcomeText} size="sm" />
                                                   </div>
                                                   {/* item badges */}
                                                   {act.itemsObtained && act.itemsObtained.length > 0 && (
@@ -2358,11 +2411,11 @@ export function AdventureScreen() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="relative w-full max-w-2xl overflow-hidden rounded-frame border border-gold/30 bg-panel/95 shadow-[0_0_60px_rgba(201,168,76,0.15)]"
+              className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-frame border border-gold/30 bg-panel/95 shadow-[0_0_60px_rgba(201,168,76,0.15)]"
             >
               {/* hero image */}
               {location?.imageUrl && (
-                <div className="relative h-40 w-full overflow-hidden sm:h-52">
+                <div className="relative h-40 w-full overflow-hidden sm:h-52 shrink-0">
                   <img
                     src={location.imageUrl}
                     alt={location.name}
@@ -2380,7 +2433,7 @@ export function AdventureScreen() {
                 </div>
               )}
               {!location?.imageUrl && (
-                <div className="border-b border-gold/15 bg-gradient-to-b from-gold/5 to-transparent p-5 pt-6">
+                <div className="border-b border-gold/15 bg-gradient-to-b from-gold/5 to-transparent p-5 pt-6 shrink-0">
                   <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gold/70">
                     {world.genre} — {world.narrativeStyle ?? world.tone}
                   </p>
@@ -2391,7 +2444,16 @@ export function AdventureScreen() {
               )}
 
               {/* narrative text */}
-              <div className="p-5 sm:p-6">
+              <div className="p-5 sm:p-6 overflow-y-auto flex-1 min-h-0">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge label="Narrativa" variant="gold" icon={<ScrollText />} size="sm" />
+                  <NarrationButton
+                    text={world.introNarrative + (currentAct && currentActMissions.length > 0 ? `. Primeira missão: ${currentActMissions[0].title}. ${currentActMissions[0].description}` : '') + (location ? `. Local inicial: ${location.name}.` : '')}
+                    autoPlay
+                    size="sm"
+                    onComplete={() => setIntroNarrationDone(true)}
+                  />
+                </div>
                 <p className="text-sm leading-relaxed text-ink/90 whitespace-pre-line">
                   {world.introNarrative}
                 </p>
@@ -2429,11 +2491,110 @@ export function AdventureScreen() {
 
                 {/* begin button */}
                 <ChoiceButton
-                  label="Iniciar Aventura"
+                  label={introNarrationDone ? 'Iniciar Aventura' : 'Aguarde a narração...'}
                   variant="gold"
                   size="lg"
-                  icon={<ChevronRight />}
-                  onClick={() => setShowIntroNarrative(false)}
+                  icon={introNarrationDone ? <ChevronRight /> : <Loader2 className="h-4 w-4 animate-spin" />}
+                  onClick={() => {
+                    if (introNarrationDone) setShowIntroNarrative(false)
+                  }}
+                  disabled={!introNarrationDone}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ━━━ LOCATION CONTEXT MODAL ━━━ */}
+      <AnimatePresence>
+        {showLocationContext && location && content && (
+          <motion.div
+            key="location-context-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[55] flex items-center justify-center bg-obsidian/95 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-frame border border-gold/30 bg-panel/95 shadow-[0_0_60px_rgba(201,168,76,0.15)]"
+            >
+              {/* hero image */}
+              {location.imageUrl && (
+                <div className="relative h-40 w-full overflow-hidden sm:h-52 shrink-0">
+                  <img
+                    src={location.imageUrl}
+                    alt={location.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-panel via-panel/60 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gold/70">
+                      {location.type}
+                    </p>
+                    <h1 className="mt-1 font-display text-xl font-bold text-ink sm:text-2xl">
+                      {location.name}
+                    </h1>
+                  </div>
+                </div>
+              )}
+              {!location.imageUrl && (
+                <div className="border-b border-gold/15 bg-gradient-to-b from-gold/5 to-transparent p-5 pt-6 shrink-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gold/70">
+                    {location.type}
+                  </p>
+                  <h1 className="mt-1 font-display text-xl font-bold text-ink sm:text-2xl">
+                    {location.name}
+                  </h1>
+                </div>
+              )}
+
+              {/* scrollable content */}
+              <div className="p-5 sm:p-6 overflow-y-auto flex-1 min-h-0">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge label="Apresentação" variant="gold" icon={<MapPin />} size="sm" />
+                  <NarrationButton
+                    text={(() => {
+                      let t = location.description ?? ''
+                      if (content.narrativeImpact) t += (t ? '. ' : '') + content.narrativeImpact
+                      return t
+                    })()}
+                    autoPlay={!locationContextNarrationDone}
+                    size="sm"
+                    onComplete={() => setLocationContextNarrationDone(true)}
+                  />
+                </div>
+
+                {/* location description */}
+                {location.description && (
+                  <p className="text-sm leading-relaxed text-ink/90 whitespace-pre-line">
+                    {location.description}
+                  </p>
+                )}
+
+                {/* narrative impact */}
+                {content.narrativeImpact && (
+                  <p className="mt-3 text-sm leading-relaxed text-ink/80 whitespace-pre-line">
+                    {content.narrativeImpact}
+                  </p>
+                )}
+
+                <DiamondDivider className="my-5" />
+
+                {/* close button */}
+                <ChoiceButton
+                  label={locationContextNarrationDone ? 'Continuar' : 'Aguarde a narração...'}
+                  variant="gold"
+                  size="lg"
+                  icon={locationContextNarrationDone ? <ChevronRight /> : <Loader2 className="h-4 w-4 animate-spin" />}
+                  onClick={() => {
+                    if (locationContextNarrationDone) setShowLocationContext(false)
+                  }}
+                  disabled={!locationContextNarrationDone}
                 />
               </div>
             </motion.div>

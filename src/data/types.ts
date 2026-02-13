@@ -120,10 +120,18 @@ export type Enemy = {
   id: string
   name: string
   hp: number
+  maxHp: number
+  level: number
   behavior: string
   attackPattern: string
   drops: Drop[]
+  battleAttributes: BattleAttributes
+  skills: BattleSkill[]
+  aiPattern: EnemyAIPattern
+  portraitUrl?: string
 }
+
+export type EnemyAIPattern = 'agressivo' | 'defensivo' | 'tatico' | 'covarde'
 
 export type Character = {
   id: string
@@ -137,6 +145,7 @@ export type Character = {
   attack: number
   defense: number
   skills: Skill[]
+  battleSkills: BattleSkill[]          // tactical battle skills (separate from narrative skills)
   inventory: InventoryItem[]
   equippedItems: Record<EquipSlot, string | null>  // slot → equipmentId or null
   gold: number
@@ -251,16 +260,137 @@ export type SaveState = {
   currentActId: string                // which act the player is on
   completedActIds: string[]           // acts fully completed
   completedMissionIds: string[]       // missions completed so far
+  visitedLocationIds: string[]        // locations the player has already visited
+  currentBattleId?: string             // battle in progress (if any)
   phase: 'idle' | 'ready' | 'playing' | 'ended'
   updatedAt: string
 }
 
 export type BattleState = {
   id: string
-  enemyIds: string[]
-  playerHp: number
-  turn: number
+  worldId: string
+  locationId: string
+  combatants: BattleCombatant[]
+  turnOrder: string[]                  // combatant IDs sorted by speed
+  currentTurnIndex: number
+  round: number
+  phase: BattlePhase
+  actionLog: BattleLogEntry[]
+  terrain: TileType[][]                // 5x5 grid
+  rewards?: BattleRewards
   updatedAt: string
+}
+
+export type BattlePhase =
+  | 'intro'
+  | 'player-turn'
+  | 'enemy-turn'
+  | 'dice-roll'
+  | 'animation'
+  | 'victory'
+  | 'defeat'
+
+export type TileType = 'normal' | 'blocked' | 'cover' | 'hazard'
+
+export type GridPosition = { col: number; row: number }
+
+export type BattleCombatant = {
+  id: string
+  name: string
+  team: 'player' | 'enemy'
+  position: GridPosition
+  hp: number
+  maxHp: number
+  battleAttributes: BattleAttributes    // base attributes
+  equipmentBonuses: Partial<BattleAttributes>
+  statusEffects: StatusEffect[]
+  actionPoints: number
+  maxActionPoints: number               // 3 for all
+  skills: BattleSkill[]
+  isDefending: boolean
+  hasAttacked: boolean                   // true after attack or skill — blocks defend
+  hasDefended: boolean                   // true after defend — blocks attack/skill
+  diceRollsRemaining: number            // 2 for players, 0 for enemies
+  portraitUrl?: string
+  /** Original character/enemy ID for persistence */
+  sourceId: string
+}
+
+export type BattleSkillType = 'ataque' | 'cura' | 'buff' | 'debuff' | 'aoe' | 'controle'
+export type BattleElement = 'fisico' | 'fogo' | 'gelo' | 'raio' | 'arcano' | 'sagrado' | 'sombrio'
+
+export type BattleSkill = {
+  id: string
+  name: string
+  description: string
+  type: BattleSkillType
+  element: BattleElement
+  range: number                         // 1 = melee, 2+ = ranged
+  aoeRadius: number                     // 0 = single target
+  apCost: number                        // always 1
+  maxUsesPerBattle: number              // 1-3 depending on power
+  currentUses: number                   // decrements during battle
+  damage?: { base: number; attribute: keyof BattleAttributes; scaling: number }
+  healing?: number
+  statusApply?: { effectId: string; chance: number }
+  /** Lifetime usage tracking for progression */
+  usageCount: number
+  level: number                         // 1-5
+  levelUpThreshold: number              // uses needed for next level
+  /** Archetype that owns this skill (for catalog lookup) */
+  archetype?: string
+}
+
+export type StatusEffectType = 'buff' | 'debuff' | 'dot' | 'hot' | 'control'
+
+export type StatusEffect = {
+  id: string
+  name: string
+  icon: string                          // lucide icon name or emoji
+  type: StatusEffectType
+  color: string                         // hex color for badge
+  attribute?: keyof BattleAttributes
+  value?: number                        // flat modifier
+  percentModifier?: number              // percentage modifier (50 = +50%)
+  damagePerTurn?: number
+  healPerTurn?: number
+  duration: number                      // turns remaining, -1 = permanent
+  stackable: boolean
+  maxStacks?: number
+  currentStacks?: number
+}
+
+export type BattleLogEntry = {
+  round: number
+  actorId: string
+  actorName: string
+  actionType: 'attack' | 'defend' | 'skill' | 'item' | 'move' | 'flee' | 'dot' | 'hot' | 'dice'
+  targetId?: string
+  targetName?: string
+  damage?: number
+  healing?: number
+  skillName?: string
+  statusApplied?: string
+  isCrit?: boolean
+  isKill?: boolean
+  text: string                          // human-readable description
+}
+
+export type BattleAction = {
+  type: 'move' | 'attack' | 'defend' | 'skill' | 'item' | 'flee' | 'end-turn'
+  actorId: string
+  targetPosition?: GridPosition
+  targetId?: string
+  skillId?: string
+  itemId?: string
+}
+
+export type DiceRollTarget = 'attack' | 'defense' | 'movement' | 'skill'
+
+export type BattleRewards = {
+  xp: number
+  gold: number
+  items: { id: string; name: string; type: string; rarity: string }[]
 }
 
 export type WorldRef = IdRef

@@ -420,6 +420,7 @@ export async function createAndCacheWorld(
     currentActId: blueprint.world.acts[0]?.id ?? '',
     completedActIds: [],
     completedMissionIds: [],
+    visitedLocationIds: [],
     phase: 'ready',
     updatedAt: new Date().toISOString(),
   }

@@ -27,6 +27,8 @@ export interface NarrationCallbacks {
   onStatusChange?: (status: NarrationStatus) => void
   onError?: (error: string) => void
   onComplete?: () => void
+  /** Called with the generated WAV blob so it can be cached for replay */
+  onAudioReady?: (wavBlob: Blob) => void
 }
 
 /* ──────────────────────────────────────────────
@@ -48,7 +50,7 @@ function buildRealtimeUrl(): string {
 }
 
 /** Strip markdown/formatting but KEEP the visible text inside narrative tags [tag:texto] */
-function cleanTextForVoice(text: string): string {
+export function cleanTextForVoice(text: string): string {
   return text
     // [tag:texto visível] → keep only the visible text
     .replace(/\[(\w+):([^\]]+)\]/g, '$2')
@@ -59,6 +61,20 @@ function cleanTextForVoice(text: string): string {
     // Remove extra whitespace
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/**
+ * Generate a stable cache key from narration text.
+ * Uses FNV-1a hash of the cleaned text for compact, collision-resistant keys.
+ */
+export function audioKeyFromText(text: string): string {
+  const clean = cleanTextForVoice(text)
+  let h = 0x811c9dc5 // FNV-1a offset basis
+  for (let i = 0; i < clean.length; i++) {
+    h ^= clean.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) // FNV prime
+  }
+  return `narration-${(h >>> 0).toString(36)}-${clean.length}`
 }
 
 /** Convert base64 PCM16 audio chunks into playable WAV */
@@ -269,6 +285,10 @@ export function narrateText(
           console.log('[NarrationVoice] Áudio completo, chunks:', audioChunks.length, 'bytes totais:', audioChunks.reduce((s, c) => s + c.byteLength, 0))
           
           if (audioChunks.length > 0) {
+            // Always create WAV blob for caching
+            const wavBlob = pcm16ToWav(audioChunks)
+            callbacks?.onAudioReady?.(wavBlob)
+
             try {
               // Use AudioContext for reliable PCM16 playback
               const actx = new AudioContext({ sampleRate: 24000 })
@@ -309,8 +329,7 @@ export function narrateText(
               activeAudio = { pause: () => { source.stop(); actx.close() }, src: '' } as unknown as HTMLAudioElement
             } catch (audioErr) {
               console.error('[NarrationVoice] Erro AudioContext:', audioErr)
-              // Fallback: WAV blob
-              const wavBlob = pcm16ToWav(audioChunks)
+              // Fallback: play the WAV blob directly
               const url = URL.createObjectURL(wavBlob)
               const audio = new Audio(url)
               activeAudio = audio
@@ -378,6 +397,43 @@ export function narrateText(
     console.log('[NarrationVoice] WebSocket fechado, code:', ev.code, 'reason:', ev.reason)
     activeSocket = null
   }
+
+  return () => stopNarration()
+}
+
+/**
+ * Play a cached WAV audio blob directly without calling the API.
+ * Returns a cleanup function to stop playback.
+ */
+export function playAudioBlob(
+  blob: Blob,
+  callbacks?: NarrationCallbacks,
+): () => void {
+  stopNarration()
+  callbacks?.onStatusChange?.('speaking')
+
+  const url = URL.createObjectURL(blob)
+  const audio = new Audio(url)
+  activeAudio = audio
+  audio.volume = 1.0
+
+  audio.onended = () => {
+    URL.revokeObjectURL(url)
+    activeAudio = null
+    callbacks?.onStatusChange?.('idle')
+    callbacks?.onComplete?.()
+  }
+  audio.onerror = () => {
+    URL.revokeObjectURL(url)
+    activeAudio = null
+    callbacks?.onStatusChange?.('error')
+    callbacks?.onError?.('Erro ao reproduzir áudio em cache')
+  }
+  audio.play().catch((e) => {
+    console.error('[NarrationVoice] Play blocked:', e)
+    callbacks?.onStatusChange?.('error')
+    callbacks?.onError?.('Navegador bloqueou reprodução de áudio')
+  })
 
   return () => stopNarration()
 }

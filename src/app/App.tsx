@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ScrollText } from 'lucide-react'
 import { BlueprintScreen } from '../screens/BlueprintScreen'
 import { AdventureScreen } from '../screens/AdventureScreen'
+import { BattleScreen } from '../screens/BattleScreen'
 import { CharacterCreateScreen } from '../screens/CharacterCreateScreen'
 import { CharacterHubScreen } from '../screens/CharacterHubScreen'
 import { MainMenuScreen } from '../screens/MainMenuScreen'
@@ -79,6 +80,9 @@ export default function App() {
 
               {/* Tela de jogo / aventura */}
               <Route path="/aventura/:worldId/jogar" element={<><SyncWorldId /><AdventureScreen /></>} />
+
+              {/* Batalha tática */}
+              <Route path="/aventura/:worldId/batalha" element={<><SyncWorldId /><BattleScreen /></>} />
 
               {/* Fallback → menu */}
               <Route path="*" element={<MainMenuScreen />} />

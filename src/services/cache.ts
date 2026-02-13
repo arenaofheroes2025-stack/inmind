@@ -12,7 +12,7 @@ import type {
 } from '../data/types'
 
 const DB_NAME = 'inmind'
-const DB_VERSION = 7
+const DB_VERSION = 8
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
@@ -51,6 +51,9 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
     }
     if (!db.objectStoreNames.contains('equipment')) {
       db.createObjectStore('equipment', { keyPath: 'id' })
+    }
+    if (!db.objectStoreNames.contains('audioCache')) {
+      db.createObjectStore('audioCache')
     }
   },
 })
@@ -294,4 +297,16 @@ export async function saveEquipmentBatch(items: Equipment[]) {
   const db = await dbPromise
   const tx = db.transaction('equipment', 'readwrite')
   await Promise.all([...items.map((eq) => tx.store.put(eq)), tx.done])
+}
+
+/* ── Audio Narration Cache ── */
+
+export async function saveNarrationAudio(key: string, blob: Blob) {
+  const db = await dbPromise
+  await db.put('audioCache', blob, key)
+}
+
+export async function getNarrationAudio(key: string): Promise<Blob | undefined> {
+  const db = await dbPromise
+  return db.get('audioCache', key) as Promise<Blob | undefined>
 }

@@ -19,6 +19,7 @@ import type { NarrativeContext, ItemGrant, GoldChange, LootResult } from './shar
 import {
   buildLocationContext,
   buildPartyContext,
+  buildOwnedItemsContext,
   extractContent,
   parseJsonPayload,
 } from './shared'
@@ -117,6 +118,7 @@ export async function generateLoot(
     buildLocationContext(location, content) +
     '\n\n' +
     buildPartyContext(characters, equipmentMap) +
+    buildOwnedItemsContext(characters, equipmentMap) +
     '\n\n' +
     (sceneDescription
       ? `CENA ATUAL (contexto com tags [item:] para referencia):\n"${sceneDescription.slice(0, 800)}"\n\n`
@@ -127,6 +129,7 @@ export async function generateLoot(
     `Dificuldade: ${choice.difficulty}\n\n` +
     'TAREFA: Gere os itens e ouro obtidos por esta acao.\n' +
     '- O item deve ser COERENTE com o mundo, local e acao realizada.\n' +
+    '- NAO gere itens que o jogador JA POSSUI na mochila (veja lista de itens possuidos acima). Crie itens DIFERENTES.\n' +
     '- Se a acao envolve um [item:] tag da cena, use dados similares.\n' +
     '- Se nao, INVENTE um item novo coerente com o contexto.\n' +
     '- Gere um ID unico no formato: "gen-" + numeros aleatorios.\n' +

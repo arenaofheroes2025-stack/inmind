@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Volume2, VolumeX, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { narrateText, stopNarration, type NarrationStatus } from '../services/narrationVoice'
+import { narrateText, stopNarration, playAudioBlob, audioKeyFromText, type NarrationStatus } from '../services/narrationVoice'
+import { getNarrationAudio, saveNarrationAudio } from '../services/cache'
 
 type Props = {
   /** The text to narrate */
@@ -10,46 +11,84 @@ type Props = {
   autoPlay?: boolean
   /** Size variant */
   size?: 'sm' | 'md'
+  /** Called when narration finishes playing (or errors) */
+  onComplete?: () => void
+}
+
+/** Shared callbacks builder — checks cache first, falls back to API, saves to cache */
+function startNarration(
+  text: string,
+  setStatus: (s: NarrationStatus) => void,
+  onComplete: (() => void) | undefined,
+  cleanupRef: React.MutableRefObject<(() => void) | null>,
+) {
+  const key = audioKeyFromText(text)
+
+  getNarrationAudio(key)
+    .then((cachedBlob) => {
+      if (cachedBlob) {
+        console.log('[NarrationButton] Reproduzindo áudio do cache:', key)
+        const cleanup = playAudioBlob(cachedBlob, {
+          onStatusChange: setStatus,
+          onError: (err) => { console.warn('[NarrationButton]', err); onComplete?.() },
+          onComplete: () => { setStatus('idle'); onComplete?.() },
+        })
+        cleanupRef.current = cleanup
+      } else {
+        const cleanup = narrateText(text, {
+          onStatusChange: setStatus,
+          onError: (err) => { console.warn('[NarrationButton]', err); onComplete?.() },
+          onComplete: () => { setStatus('idle'); onComplete?.() },
+          onAudioReady: (blob) => {
+            saveNarrationAudio(key, blob).catch(() => {})
+            console.log('[NarrationButton] Áudio salvo no cache:', key)
+          },
+        })
+        cleanupRef.current = cleanup
+      }
+    })
+    .catch(() => {
+      // IndexedDB error — just generate fresh
+      const cleanup = narrateText(text, {
+        onStatusChange: setStatus,
+        onError: (err) => { console.warn('[NarrationButton]', err); onComplete?.() },
+        onComplete: () => { setStatus('idle'); onComplete?.() },
+        onAudioReady: (blob) => { saveNarrationAudio(key, blob).catch(() => {}) },
+      })
+      cleanupRef.current = cleanup
+    })
 }
 
 /**
  * A small button that triggers voice narration for a given text.
- * Shows status (idle → connecting → speaking) with appropriate icons.
+ * Checks the audio cache first — if the text was narrated before, replays
+ * the cached WAV instantly without calling the API (saving prompt costs).
  */
-export function NarrationButton({ text, autoPlay = false, size = 'sm' }: Props) {
+export function NarrationButton({ text, autoPlay = false, size = 'sm', onComplete }: Props) {
   const [status, setStatus] = useState<NarrationStatus>('idle')
   const cleanupRef = useRef<(() => void) | null>(null)
   const autoPlayedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
   const handleNarrate = useCallback(() => {
     if (status === 'speaking' || status === 'connecting') {
-      // Stop current narration
       stopNarration()
       setStatus('idle')
       cleanupRef.current = null
+      onCompleteRef.current?.()
       return
     }
 
-    const cleanup = narrateText(text, {
-      onStatusChange: setStatus,
-      onError: (err) => console.warn('[NarrationButton]', err),
-      onComplete: () => setStatus('idle'),
-    })
-    cleanupRef.current = cleanup
+    startNarration(text, setStatus, onCompleteRef.current, cleanupRef)
   }, [text, status])
 
   // Auto-play on first mount if enabled
   useEffect(() => {
     if (autoPlay && text && !autoPlayedRef.current) {
       autoPlayedRef.current = true
-      // Small delay to ensure component is visible
       const t = setTimeout(() => {
-        const cleanup = narrateText(text, {
-          onStatusChange: setStatus,
-          onError: (err) => console.warn('[NarrationButton]', err),
-          onComplete: () => setStatus('idle'),
-        })
-        cleanupRef.current = cleanup
+        startNarration(text, setStatus, onCompleteRef.current, cleanupRef)
       }, 500)
       return () => clearTimeout(t)
     }

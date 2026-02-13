@@ -29,6 +29,8 @@ export const ROUTES = {
   MAP: (worldId: string) => `/aventura/${worldId}/mapa`,
   /** Adventure screen (gameplay) */
   PLAY: (worldId: string) => `/aventura/${worldId}/jogar`,
+  /** Tactical battle screen */
+  BATTLE: (worldId: string) => `/aventura/${worldId}/batalha`,
 } as const
 
 /* ──────────────────────────────────────────────
@@ -48,6 +50,7 @@ export function useNavigateGame() {
     setCurrentLocationId,
     setCurrentCharacterId,
     setEditingCharacterId,
+    setCurrentBattleId,
   } = useGameStore()
 
   const goMenu = useCallback(() => {
@@ -111,5 +114,15 @@ export function useNavigateGame() {
     [navigate, setView, setCurrentWorldId, setCurrentLocationId, setCurrentCharacterId],
   )
 
-  return { goMenu, goNewAdventure, goCharacters, goNewCharacter, goEditCharacter, goMap, goPlay }
+  const goBattle = useCallback(
+    (worldId: string, battleId: string) => {
+      setCurrentWorldId(worldId)
+      setCurrentBattleId(battleId)
+      setView('battle')
+      navigate(ROUTES.BATTLE(worldId))
+    },
+    [navigate, setView, setCurrentWorldId, setCurrentBattleId],
+  )
+
+  return { goMenu, goNewAdventure, goCharacters, goNewCharacter, goEditCharacter, goMap, goPlay, goBattle }
 }
