@@ -6,7 +6,7 @@
  * a complete Enemy object with HP, behavior, attack patterns, and drops.
  */
 
-import type { Enemy, BattleAttributes, BattleSkill, EnemyAIPattern } from '../../data/types'
+import type { Enemy, BattleAttributes, EnemyAIPattern } from '../../data/types'
 import type { NarrativeContext } from './shared'
 import {
   buildWorldContext,

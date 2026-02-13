@@ -14,11 +14,8 @@
 
 import { createChatCompletion } from '../aiClient'
 import type {
-  BattleCombatant,
   BattleLogEntry,
   BattleState,
-  Character,
-  Enemy,
   World,
   Location,
 } from '../../data/types'
@@ -96,12 +93,12 @@ const SKILL_CONTROL_TEMPLATES = [
   'Com precisão, {actor} aplica {skill} contra {target}!',
 ]
 
-/* ── Status applied ── */
-const STATUS_APPLIED_TEMPLATES = [
-  '{target} recebe o efeito {effect}!',
-  'O efeito {effect} se aplica a {target}.',
-  '{target} agora está sob efeito de {effect}.',
-]
+/* ── Status applied (reserved for future narration use) ── */
+// const STATUS_APPLIED_TEMPLATES = [
+//   '{target} recebe o efeito {effect}!',
+//   'O efeito {effect} se aplica a {target}.',
+//   '{target} agora está sob efeito de {effect}.',
+// ]
 
 /* ── DoT ── */
 const DOT_TEMPLATES = [
@@ -384,7 +381,7 @@ function fallbackConclusion(ctx: BattleNarrativeContext, victory: boolean): stri
 
 function fallbackDiceRoll(
   rollerName: string,
-  roll: number,
+  _roll: number,
   isCrit: boolean,
   isCritFail: boolean,
 ): string {

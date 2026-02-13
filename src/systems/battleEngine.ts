@@ -18,7 +18,6 @@ import type {
   BattleCombatant,
   BattleAction,
   BattleAttributes,
-  BattleLogEntry,
   BattleRewards,
   BattleSkill,
   Character,
@@ -92,10 +91,10 @@ function posKey(p: GridPosition): string {
   return `${p.col},${p.row}`
 }
 
-function parseKey(k: string): GridPosition {
-  const [col, row] = k.split(',').map(Number)
-  return { col, row }
-}
+// function parseKey(k: string): GridPosition {
+//   const [col, row] = k.split(',').map(Number)
+//   return { col, row }
+// }
 
 /** BFS-based reachable tiles from a position within maxSteps (1 tile = 1 AP) */
 export function getMovementRange(
@@ -131,7 +130,7 @@ export function getMovementRange(
 
 /** Tiles within attack/skill range (straight-line manhattan, ignores obstacles for ranged) */
 export function getAttackRange(
-  state: BattleState,
+  _state: BattleState,
   from: GridPosition,
   range: number,
 ): GridPosition[] {
@@ -288,7 +287,7 @@ function characterToCombatant(char: Character, position: GridPosition): BattleCo
     maxHp: 20 + char.level * 5 + (char.battleAttributes?.defesa ?? 0) * 2,
     battleAttributes: {
       ataque: 10, defesa: 10, velocidade: 10, magia: 10,
-      ...(char.battleAttributes ?? {}),
+      ...((char.battleAttributes as Partial<BattleAttributes>) ?? {}),
     },
     equipmentBonuses: equipBonuses,
     statusEffects: [],
@@ -981,7 +980,7 @@ export function performDiceRoll(
     case 'attack': relevantAttr = attrs.ataque; break
     case 'defense': relevantAttr = attrs.defesa; break
     case 'skill': relevantAttr = attrs.magia; break
-    case 'move': relevantAttr = attrs.agilidade; break
+    case 'move': relevantAttr = attrs.velocidade; break
     default: relevantAttr = 10
   }
 
@@ -1131,10 +1130,8 @@ export function getEnemyAction(state: BattleState, enemyId: string): BattleActio
   if (players.length === 0) return []
 
   // Determine AI pattern from original enemy or default
-  const pattern: EnemyAIPattern = 'agressivo' // default; real pattern comes from Enemy.aiPattern
-
-  const actions: BattleAction[] = []
-  let ap = enemy.actionPoints
+  const pattern = ('agressivo' as EnemyAIPattern) // default; real pattern comes from Enemy.aiPattern
+  const ap = enemy.actionPoints
 
   switch (pattern) {
     case 'agressivo':
@@ -1145,8 +1142,6 @@ export function getEnemyAction(state: BattleState, enemyId: string): BattleActio
       return getTacticalActions(state, enemy, players, ap)
     case 'covarde':
       return getCowardActions(state, enemy, players, ap)
-    default:
-      return getAggressiveActions(state, enemy, players, ap)
   }
 }
 

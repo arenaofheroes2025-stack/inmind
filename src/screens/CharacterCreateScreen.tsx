@@ -380,6 +380,7 @@ export function CharacterCreateScreen() {
       gold: 0,
       equippedItems: { arma: null, armadura: null, escudo: null, acessorio: null },
       portraitUrl, appearance,
+      battleSkills: [],
     }
     await saveCharacter(character)
     if (worldId) {
@@ -394,7 +395,7 @@ export function CharacterCreateScreen() {
       const cached = await getSaveState(saveId)
       const nextState = cached
         ? { ...cached, characterId: character.id, updatedAt: new Date().toISOString() }
-        : { id: saveId, worldId, characterId: character.id, currentLocationId: '', activeQuestIds: [], currentActId: '', completedActIds: [], completedMissionIds: [], phase: 'ready' as const, updatedAt: new Date().toISOString() }
+        : { id: saveId, worldId, characterId: character.id, currentLocationId: '', activeQuestIds: [], currentActId: '', completedActIds: [], completedMissionIds: [], visitedLocationIds: [], phase: 'ready' as const, updatedAt: new Date().toISOString() }
       await saveSaveState(nextState)
     }
     if (worldId) goCharacters(worldId)

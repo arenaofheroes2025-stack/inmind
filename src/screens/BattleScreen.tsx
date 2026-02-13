@@ -36,15 +36,12 @@ import {
 import type {
   BattleAction,
   BattleCombatant,
-  BattleLogEntry,
   BattleSkill,
   BattleState,
   GridPosition,
 } from '../data/types'
 import {
   advanceTurn,
-  checkBattleEnd,
-  createBattle,
   executeAction,
   getAttackRange,
   getEffectiveAttributes,
@@ -54,8 +51,6 @@ import {
   performDiceRoll,
   applyDiceRollToAction,
   startBattle,
-  syncBattleSkillsToCharacter,
-  calculateRewards,
   type DiceRollResult,
 } from '../systems/battleEngine'
 import {
@@ -64,7 +59,6 @@ import {
   narrateBattleConclusion,
   narrateDiceRollMoment,
   extractBattleHighlights,
-  type BattleNarrativeContext,
 } from '../services/agents/battleNarrator'
 import { useGameStore } from '../store/useGameStore'
 import { useNavigateGame } from '../app/routes'
